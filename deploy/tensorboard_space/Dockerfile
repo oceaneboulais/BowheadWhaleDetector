@@ -3,7 +3,8 @@
 FROM python:3.11-slim
 
 # `six` is required by tensorboard's vendored html5lib but isn't pulled in on slim.
-RUN pip install --no-cache-dir tensorboard==2.14.0 six
+# numpy<2 because tensorboard 2.14 uses np.string_, removed in NumPy 2.0.
+RUN pip install --no-cache-dir tensorboard==2.14.0 six "numpy<2"
 
 WORKDIR /app
 # TB event files for every run live under logs/<tag>/ (snapshot of ./runs).
