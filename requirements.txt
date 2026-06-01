@@ -1,0 +1,13 @@
+# Core (benchmarks 0, 1 + shared eval harness)
+torch>=2.1
+numpy>=1.24
+scikit-learn>=1.3
+matplotlib>=3.7
+tqdm>=4.65
+tensorboard>=2.14        # training dashboard (scalars + hparams)
+
+# Optional, added when building the transfer-learning benchmarks (2, 3):
+#   tensorflow>=2.15        # BirdNET / Perch backends
+#   tensorflow-hub>=0.16
+#   librosa>=0.10           # resampling / 10x speed-up frequency shift
+#   umap-learn>=0.5         # latent-space visualization (matches the paper)

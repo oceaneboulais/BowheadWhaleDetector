@@ -1,0 +1,24 @@
+# --- data (large, regenerate with bowhead/data/build_dataset.py) ---
+# anchored to repo root so the bowhead/data/ SOURCE package is NOT ignored
+/data/
+*.npz
+
+# --- training outputs (TB logs snapshot lives in deploy/tensorboard_space/logs) ---
+/runs/
+
+# --- python ---
+__pycache__/
+*.py[cod]
+*.egg-info/
+.ipynb_checkpoints/
+
+# --- virtualenvs ---
+.venv/
+venv*/
+.venv_*/
+
+# --- editor / OS / local agent settings ---
+.DS_Store
+.claude/
+.vscode/
+.idea/
