@@ -278,7 +278,17 @@ def build_html(npz_path: Path, out_path: Path, eval_dir: Path | None = None) -> 
         '<span style="color:#888">&#9135;&nbsp;&#9135; <strong>Random baseline</strong></span>'
         " &mdash; horizontal line at precision&nbsp;=&nbsp;prevalence "
         "(AP of a zero-skill classifier). Any useful detector must lie clearly "
-        "above this line on the PR plot."
+        "above this line on the PR plot.<br><br>"
+        "<strong>Latent-space embedding:</strong> "
+        "Both models produce a 32-D embedding per spectrogram from the FC bottleneck "
+        "(FC&nbsp;24,960&nbsp;&rarr;&nbsp;64&nbsp;&rarr;&nbsp;32). "
+        "These embeddings are projected to 2-D with "
+        "<a href='embedding_scatter.html'>UMAP</a> using "
+        "<strong>n_neighbors&nbsp;=&nbsp;30</strong>, "
+        "min_dist&nbsp;=&nbsp;0.1, Euclidean metric, random_state&nbsp;=&nbsp;42, "
+        "fit on all 198,933 samples. "
+        "The resulting scatter is viewable in the "
+        "<a href='embedding_scatter.html'>embedding scatter page</a>."
         "</div>"
     )
 
