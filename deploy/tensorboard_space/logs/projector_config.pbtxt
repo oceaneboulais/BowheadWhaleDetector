@@ -1,5 +1,5 @@
 embeddings {
-  tensor_name: "scratch/latent_32D:00000"
+  tensor_name: "scratch/UMAP_2D_frozen:00000"
   metadata_path: "scratch_demo/00000/latent_32D/metadata.tsv"
   sprite {
     image_path: "scratch_demo/00000/latent_32D/sprite.png"
@@ -10,7 +10,7 @@ embeddings {
 }
 
 embeddings {
-  tensor_name: "warmstart/latent_32D:00000"
+  tensor_name: "warmstart/UMAP_2D_frozen:00000"
   metadata_path: "warmstart_demo/00000/latent_32D/metadata.tsv"
   sprite {
     image_path: "warmstart_demo/00000/latent_32D/sprite.png"
