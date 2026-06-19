@@ -17,6 +17,9 @@ __pycache__/
 venv*/
 .venv_*/
 
+# --- docs: keep locally but do not publish ---
+docs/literature_review_dl.html
+
 # --- editor / OS / local agent settings ---
 .DS_Store
 .claude/
