@@ -138,22 +138,24 @@ def build_html(npz_path: Path, out_path: Path, eval_dir: Path | None = None) -> 
         line=dict(color=GREY, dash="dash", width=1.5), showlegend=False),
         row=1, col=2)
 
+    _grid = dict(showgrid=True, gridcolor="#e0e0e0", gridwidth=1,
+                 zeroline=True, zerolinecolor="#cccccc", zerolinewidth=1)
     fig.update_layout(
         title=dict(
             text=(f"Custom CNN detector curves on FULL DATASET"
                   f" | n={n:,}  prevalence={prev:.3f}"),
             font=dict(size=15),
         ),
-        xaxis =dict(title="Recall",                           range=[0, 1]),
-        yaxis =dict(title="Precision",                        range=[0, 1.02]),
-        xaxis2=dict(title="Miss Fraction (1 − Recall)",       range=[0, 1]),
-        yaxis2=dict(title="False Discovery Rate (1 − Precision)", range=[0, 1.02]),
+        xaxis =dict(title="Recall",                               range=[0, 1], **_grid),
+        yaxis =dict(title="Precision",                            range=[0, 1.02], **_grid),
+        xaxis2=dict(title="Miss Fraction (1 − Recall)",           range=[0, 1], **_grid),
+        yaxis2=dict(title="False Discovery Rate (1 − Precision)", range=[0, 1.02], **_grid),
         legend=dict(
             x=0.01, y=0.15,
             bgcolor="rgba(255,255,255,0.85)",
             bordercolor="#cccccc", borderwidth=1,
         ),
-        plot_bgcolor="white",
+        plot_bgcolor="#fafafa",
         paper_bgcolor="white",
         height=500, width=1100,
         annotations=[
