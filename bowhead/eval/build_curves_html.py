@@ -250,6 +250,40 @@ def build_html(npz_path: Path, out_path: Path, eval_dir: Path | None = None) -> 
         "inferno colormap, per-sample min-max normalised). "
         "One file was skipped (airgun_index.mat, not a spectrogram)."
         "</em>"
+        "<br>"
+        "<strong>Training dataset</strong><br>"
+        "<em style='font-size:12px;color:#555'>"
+        "The CNN models were trained on two separate databases "
+        "(distinct from this evaluation set):"
+        "</em><br>"
+        '<table style="border-collapse:collapse;font-size:12px;margin-top:6px">'
+        "<tr>"
+        + _th("Role") + _th("Directory") + _th("Count") + _th("Label")
+        + "</tr>"
+        "<tr>"
+        + _td("Calls (positive)", "font-weight:600")
+        + _td('<code style="font-size:11px;background:#efefef;padding:1px 4px;border-radius:3px">'
+              "Unsupervised_database_Manual_100K_ADG_Y08101214_centered_16Apr2026.dir"
+              "</code>")
+        + _td("98,933", "text-align:right")
+        + _td('<span style="color:#2a7;font-weight:600">1</span>')
+        + "</tr>"
+        "<tr style='background:#fafafa'>"
+        + _td("Non-call transients (negative)", "font-weight:600")
+        + _td('<code style="font-size:11px;background:#efefef;padding:1px 4px;border-radius:3px">'
+              "Unsupervised_database_Auto_100K_ADG_Y08101214_centered_16Apr2026.dir"
+              "</code>")
+        + _td("100,723", "text-align:right")
+        + _td('<span style="color:#c33;font-weight:600">0</span>')
+        + "</tr>"
+        "</table>"
+        "<br><em style='font-size:11px;color:#888'>"
+        "Training split: grouped by date &times; DASAR site to prevent leakage "
+        "(train 115,402 | val 32,861 | test 51,393 &mdash; zero group overlap). "
+        "Warm-start CNN encoder initialised from "
+        "<code style='font-size:11px'>Autoencoder_v13_100E_32LD_32C_AutoManual_"
+        "Combined_100K_Date20260416-180022</code> (LD32, 100 epochs)."
+        "</em>"
         "</div>"
     )
 

@@ -105,9 +105,9 @@ def run(
     html_out: Path,
     device: str | None = None,
 ) -> None:
-    if device is None:
+    if device is None or device == "auto":
         device = best_device()
-        print(f"Device: {device}")
+    print(f"Device: {device}")
     # 1. Scan directory; infer labels from filename type
     print(f"\nScanning {eval_dir} ...")
     mat_paths: list[Path] = []
