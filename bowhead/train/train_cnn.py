@@ -25,7 +25,7 @@ from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 from sklearn.metrics import roc_auc_score
 
-from bowhead.config import TrainConfig
+from bowhead.config import TrainConfig, best_device
 from bowhead.data.dataset import SpectrogramDataset
 from bowhead.data.splits import grouped_split, make_date_site_group
 from bowhead.models.custom_cnn import EncoderClassifier, load_pretrained_encoder
@@ -55,7 +55,7 @@ def _val_auc(model: EncoderClassifier, loader: DataLoader, device: str) -> float
 def train_custom_cnn(cfg: TrainConfig) -> dict:
     torch.manual_seed(cfg.seed)
     np.random.seed(cfg.seed)
-    device = cfg.device if torch.cuda.is_available() or cfg.device != "cuda" else "cpu"
+    device = best_device() if cfg.device == "auto" else cfg.device
     out = Path(cfg.out_dir) / cfg.tag
     out.mkdir(parents=True, exist_ok=True)
     # TensorBoard: event files land in runs/<tag>/ so `tensorboard --logdir runs`

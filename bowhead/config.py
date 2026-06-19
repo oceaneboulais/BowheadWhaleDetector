@@ -9,6 +9,16 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 
 
+def best_device() -> str:
+    """Return 'mps', 'cuda', or 'cpu' — whichever is available first."""
+    import torch
+    if torch.backends.mps.is_available():
+        return "mps"
+    if torch.cuda.is_available():
+        return "cuda"
+    return "cpu"
+
+
 @dataclass
 class TrainConfig:
     # data
@@ -41,7 +51,7 @@ class TrainConfig:
     # bookkeeping
     seed: int = 0
     out_dir: str = "runs"
-    device: str = "cuda"                  # set "mps"/"cpu" for local Mac
+    device: str = "auto"                  # "auto" -> mps > cuda > cpu at runtime
     tag: str = "custom_cnn"
 
     metadata: dict = field(default_factory=dict)
