@@ -1,0 +1,21 @@
+embeddings {
+  tensor_name: "scratch/latent_32D:00000"
+  metadata_path: "scratch_demo/00000/latent_32D/metadata.tsv"
+  sprite {
+    image_path: "scratch_demo/00000/latent_32D/sprite.png"
+    single_image_dim: 28
+    single_image_dim: 28
+  }
+  tensor_path: "scratch_demo/00000/latent_32D/tensors.tsv"
+}
+
+embeddings {
+  tensor_name: "warmstart/latent_32D:00000"
+  metadata_path: "warmstart_demo/00000/latent_32D/metadata.tsv"
+  sprite {
+    image_path: "warmstart_demo/00000/latent_32D/sprite.png"
+    single_image_dim: 28
+    single_image_dim: 28
+  }
+  tensor_path: "warmstart_demo/00000/latent_32D/tensors.tsv"
+}

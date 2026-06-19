@@ -1,0 +1,11 @@
+{
+  "tag": "scratch_demo_dashboard",
+  "ckpt": "runs/scratch_demo/best.pt",
+  "data": "data/spectrograms_demo.npz",
+  "roc_auc": 0.9374385614385614,
+  "average_precision": 0.7318875496467283,
+  "precision_at_recall_0.70": 0.7007874015748031,
+  "operating_threshold": 0.5457198023796082,
+  "n": 1126,
+  "prevalence": 0.11101243339253997
+}

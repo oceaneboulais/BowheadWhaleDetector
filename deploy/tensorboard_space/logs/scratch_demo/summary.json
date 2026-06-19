@@ -1,0 +1,12 @@
+{
+  "tag": "scratch_demo",
+  "best_val_auc": 0.9334640886253192,
+  "best_epoch": 2,
+  "test": {
+    "roc_auc": 0.9374385614385614,
+    "average_precision": 0.7318875496467283,
+    "prevalence": 0.11101243339253997,
+    "n": 1126
+  },
+  "test_precision_at_recall_0.70": 0.7007874015748031
+}

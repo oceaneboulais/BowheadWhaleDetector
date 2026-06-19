@@ -1,0 +1,12 @@
+{
+  "tag": "warmstart_demo",
+  "best_val_auc": 0.9051539377591084,
+  "best_epoch": 22,
+  "test": {
+    "roc_auc": 0.8898741258741258,
+    "average_precision": 0.5580046528832653,
+    "prevalence": 0.11101243339253997,
+    "n": 1126
+  },
+  "test_precision_at_recall_0.70": 0.46153846153846156
+}

@@ -1,0 +1,11 @@
+{
+  "tag": "scratch_200k",
+  "ckpt": "runs/scratch_demo/best.pt",
+  "data": "data/spectrograms_200k.npz",
+  "roc_auc": 0.9456444449816015,
+  "average_precision": 0.7776638795014285,
+  "precision_at_recall_0.70": 0.7469135802469136,
+  "operating_threshold": 0.6682166457176208,
+  "n": 15532,
+  "prevalence": 0.11112541849085758
+}

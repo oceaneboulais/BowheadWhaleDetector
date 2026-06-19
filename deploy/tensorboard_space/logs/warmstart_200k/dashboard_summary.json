@@ -1,0 +1,11 @@
+{
+  "tag": "warmstart_200k",
+  "ckpt": "runs/warmstart_demo/best.pt",
+  "data": "data/spectrograms_200k.npz",
+  "roc_auc": 0.9183055623119845,
+  "average_precision": 0.6809369585562324,
+  "precision_at_recall_0.70": 0.6454885210891618,
+  "operating_threshold": 0.9985272884368896,
+  "n": 15532,
+  "prevalence": 0.11112541849085758
+}

@@ -1,0 +1,11 @@
+{
+  "tag": "warmstart_demo_dashboard",
+  "ckpt": "runs/warmstart_demo/best.pt",
+  "data": "data/spectrograms_demo.npz",
+  "roc_auc": 0.8892507492507492,
+  "average_precision": 0.5557079982596715,
+  "precision_at_recall_0.70": 0.46153846153846156,
+  "operating_threshold": 0.7844598293304443,
+  "n": 1126,
+  "prevalence": 0.11101243339253997
+}
