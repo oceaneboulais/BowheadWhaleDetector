@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DASAR Hydrophone Array — Beaufort Sea</title>
+<script src="https://cdn.plot.ly/plotly-2.27.0.min.js" charset="utf-8"></script>
+<style>
+  body {{ margin: 0; padding: 0; font-family: Arial, sans-serif; background: #0e1117; color: #e0e0e0; }}
+  #header {{ padding: 18px 24px 10px; }}
+  h1 {{ margin: 0 0 4px; font-size: 1.4em; color: #7ec8e3; }}
+  .subtitle {{ font-size: 0.85em; color: #9ca3af; margin-bottom: 8px; }}
+  #map-container {{ height: 640px; width: 100%; }}
+  #legend {{ padding: 10px 24px 4px; display: flex; gap: 24px; flex-wrap: wrap; }}
+  .legend-item {{ display: flex; align-items: center; gap: 6px; font-size: 0.82em; }}
+  .dot {{ width: 12px; height: 12px; border-radius: 50%; }}
+  #info-panel {{ padding: 10px 24px 18px; font-size: 0.82em; color: #9ca3af; max-width: 960px; }}
+  table {{ border-collapse: collapse; width: 100%; max-width: 820px; margin-top: 8px; }}
+  th {{ background: #1e293b; color: #7ec8e3; padding: 6px 12px; text-align: left; font-size: 0.9em; }}
+  td {{ padding: 5px 12px; border-bottom: 1px solid #1e293b; }}
+  tr:nth-child(even) td {{ background: #111827; }}
+  a {{ color: #7ec8e3; }}
+</style>
+</head>
+<body>
+<div id="header">
+  <h1>DASAR Hydrophone Arrays — Alaskan Beaufort Sea</h1>
+  <div class="subtitle">
+    Directional Autonomous Seafloor Acoustic Recorder (DASAR) deployment sites used for
+    BCB bowhead whale detection, 2008–2014 &nbsp;|&nbsp;
+    Sites 3 &amp; 5 are present in the ML training &amp; evaluation datasets
+  </div>
+</div>
+<div id="legend">
+  <div class="legend-item"><div class="dot" style="background:#f97316;"></div> Sites 3 &amp; 5 (in dataset)</div>
+  <div class="legend-item"><div class="dot" style="background:#6b7280;"></div> Sites 1, 2, 4 (not in dataset)</div>
+  <div class="legend-item"><div class="dot" style="background:#fbbf24;border:2px solid #fff;width:14px;height:14px;"></div> Site centre</div>
+  <div class="legend-item" style="border-left:1px solid #374151;padding-left:18px;">
+    DASAR A = southernmost/shallowest &rarr; DASAR G = northernmost/deepest
+  </div>
+</div>
+<div id="map-container"></div>
+<div id="info-panel">
+  <p><strong>Deployment details</strong> (from Blackwell et al. 2015, PLOS ONE 10(6):e0125720;
+  Thode et al. 2021, JASA 150(3):1954–1966):</p>
+  <table>
+    <tr>
+      <th>Site</th><th>Lat (°N)</th><th>Lon (°W)</th><th>Mean depth (m)</th>
+      <th>In ML dataset</th><th>Years</th><th>DASARs A/D/G depths (m)</th>
+    </tr>
+    <tr><td>1</td><td>70.52</td><td>154.02</td><td>21.3</td><td>—</td><td>2007–2010</td><td>~15–22</td></tr>
+    <tr><td>2</td><td>70.63</td><td>151.49</td><td>26.7</td><td>—</td><td>2007–2010</td><td>~20–27</td></tr>
+    <tr><td>3</td><td>70.74</td><td>149.74</td><td>35.0</td><td>✓ (257K spectrograms)</td><td>2008, 2010, 2012, 2014</td><td>22 / 38 / 39</td></tr>
+    <tr><td>4</td><td>70.67</td><td>147.98</td><td>35.4</td><td>—</td><td>2007–2010</td><td>~28–36</td></tr>
+    <tr><td>5</td><td>70.45</td><td>145.75</td><td>48.1</td><td>✓ (263K spectrograms)</td><td>2008, 2010, 2012, 2014</td><td>39 / 46 / 52</td></tr>
+  </table>
+  <p style="margin-top:12px;">
+    <strong>Dataset coverage:</strong> 519,815 unique spectrograms (after deduplication across 5 .dir archives),
+    spanning years 2008, 2010, 2012, 2014 at Sites 3 &amp; 5, DASARs A / D / G.
+    Each spectrogram is a 121×104 uint8 SNR_gram (10–450 Hz, ~8.5-second window).
+  </p>
+  <p>
+    <strong>Coordinates:</strong> Mean DASAR positions derived from published maps and S1 Table of
+    Blackwell et al. (2015). Individual DASAR positions within each site are approximated from
+    the published equilateral-triangle grid geometry (7 km side length).
+    Exact GPS positions for all 42 DASAR locations are available in the open-access
+    supplement at <a href="https://doi.org/10.1371/journal.pone.0125720.s001" target="_blank">
+    doi:10.1371/journal.pone.0125720.s001</a>.
+  </p>
+</div>
+<script>
+const records = [
+  {
+    "site": 1,
+    "dasar": "A",
+    "label": "1A",
+    "lat": 70.48847,
+    "lon": -154.20421,
+    "depth_m": 21,
+    "in_dataset": false
+  },
+  {
+    "site": 1,
+    "dasar": "B",
+    "label": "1B",
+    "lat": 70.48847,
+    "lon": -154.02,
+    "depth_m": 21,
+    "in_dataset": false
+  },
+  {
+    "site": 1,
+    "dasar": "C",
+    "label": "1C",
+    "lat": 70.48847,
+    "lon": -153.83579,
+    "depth_m": 21,
+    "in_dataset": false
+  },
+  {
+    "site": 1,
+    "dasar": "D",
+    "label": "1D",
+    "lat": 70.52,
+    "lon": -154.11211,
+    "depth_m": 21,
+    "in_dataset": false
+  },
+  {
+    "site": 1,
+    "dasar": "E",
+    "label": "1E",
+    "lat": 70.52,
+    "lon": -153.92789,
+    "depth_m": 21,
+    "in_dataset": false
+  },
+  {
+    "site": 1,
+    "dasar": "F",
+    "label": "1F",
+    "lat": 70.55153,
+    "lon": -154.11211,
+    "depth_m": 21,
+    "in_dataset": false
+  },
+  {
+    "site": 1,
+    "dasar": "G",
+    "label": "1G",
+    "lat": 70.55153,
+    "lon": -153.92789,
+    "depth_m": 21,
+    "in_dataset": false
+  },
+  {
+    "site": 1,
+    "dasar": "centre",
+    "label": "Site 1 centre",
+    "lat": 70.52,
+    "lon": -154.02,
+    "depth_m": 21,
+    "in_dataset": false
+  },
+  {
+    "site": 2,
+    "dasar": "A",
+    "label": "2A",
+    "lat": 70.59847,
+    "lon": -151.67421,
+    "depth_m": 26,
+    "in_dataset": false
+  },
+  {
+    "site": 2,
+    "dasar": "B",
+    "label": "2B",
+    "lat": 70.59847,
+    "lon": -151.49,
+    "depth_m": 26,
+    "in_dataset": false
+  },
+  {
+    "site": 2,
+    "dasar": "C",
+    "label": "2C",
+    "lat": 70.59847,
+    "lon": -151.30579,
+    "depth_m": 26,
+    "in_dataset": false
+  },
+  {
+    "site": 2,
+    "dasar": "D",
+    "label": "2D",
+    "lat": 70.63,
+    "lon": -151.58211,
+    "depth_m": 26,
+    "in_dataset": false
+  },
+  {
+    "site": 2,
+    "dasar": "E",
+    "label": "2E",
+    "lat": 70.63,
+    "lon": -151.39789,
+    "depth_m": 26,
+    "in_dataset": false
+  },
+  {
+    "site": 2,
+    "dasar": "F",
+    "label": "2F",
+    "lat": 70.66153,
+    "lon": -151.58211,
+    "depth_m": 26,
+    "in_dataset": false
+  },
+  {
+    "site": 2,
+    "dasar": "G",
+    "label": "2G",
+    "lat": 70.66153,
+    "lon": -151.39789,
+    "depth_m": 26,
+    "in_dataset": false
+  },
+  {
+    "site": 2,
+    "dasar": "centre",
+    "label": "Site 2 centre",
+    "lat": 70.63,
+    "lon": -151.49,
+    "depth_m": 26,
+    "in_dataset": false
+  },
+  {
+    "site": 3,
+    "dasar": "A",
+    "label": "3A",
+    "lat": 70.70347,
+    "lon": -149.92421,
+    "depth_m": 22,
+    "in_dataset": true
+  },
+  {
+    "site": 3,
+    "dasar": "B",
+    "label": "3B",
+    "lat": 70.70347,
+    "lon": -149.74,
+    "depth_m": 34,
+    "in_dataset": true
+  },
+  {
+    "site": 3,
+    "dasar": "C",
+    "label": "3C",
+    "lat": 70.70347,
+    "lon": -149.55579,
+    "depth_m": 28,
+    "in_dataset": true
+  },
+  {
+    "site": 3,
+    "dasar": "D",
+    "label": "3D",
+    "lat": 70.735,
+    "lon": -149.83211,
+    "depth_m": 38,
+    "in_dataset": true
+  },
+  {
+    "site": 3,
+    "dasar": "E",
+    "label": "3E",
+    "lat": 70.735,
+    "lon": -149.64789,
+    "depth_m": 32,
+    "in_dataset": true
+  },
+  {
+    "site": 3,
+    "dasar": "F",
+    "label": "3F",
+    "lat": 70.76653,
+    "lon": -149.83211,
+    "depth_m": 36,
+    "in_dataset": true
+  },
+  {
+    "site": 3,
+    "dasar": "G",
+    "label": "3G",
+    "lat": 70.76653,
+    "lon": -149.64789,
+    "depth_m": 39,
+    "in_dataset": true
+  },
+  {
+    "site": 3,
+    "dasar": "centre",
+    "label": "Site 3 centre",
+    "lat": 70.735,
+    "lon": -149.74,
+    "depth_m": 35,
+    "in_dataset": true
+  },
+  {
+    "site": 4,
+    "dasar": "A",
+    "label": "4A",
+    "lat": 70.63347,
+    "lon": -148.16421,
+    "depth_m": 35,
+    "in_dataset": false
+  },
+  {
+    "site": 4,
+    "dasar": "B",
+    "label": "4B",
+    "lat": 70.63347,
+    "lon": -147.98,
+    "depth_m": 35,
+    "in_dataset": false
+  },
+  {
+    "site": 4,
+    "dasar": "C",
+    "label": "4C",
+    "lat": 70.63347,
+    "lon": -147.79579,
+    "depth_m": 35,
+    "in_dataset": false
+  },
+  {
+    "site": 4,
+    "dasar": "D",
+    "label": "4D",
+    "lat": 70.665,
+    "lon": -148.07211,
+    "depth_m": 35,
+    "in_dataset": false
+  },
+  {
+    "site": 4,
+    "dasar": "E",
+    "label": "4E",
+    "lat": 70.665,
+    "lon": -147.88789,
+    "depth_m": 35,
+    "in_dataset": false
+  },
+  {
+    "site": 4,
+    "dasar": "F",
+    "label": "4F",
+    "lat": 70.69653,
+    "lon": -148.07211,
+    "depth_m": 35,
+    "in_dataset": false
+  },
+  {
+    "site": 4,
+    "dasar": "G",
+    "label": "4G",
+    "lat": 70.69653,
+    "lon": -147.88789,
+    "depth_m": 35,
+    "in_dataset": false
+  },
+  {
+    "site": 4,
+    "dasar": "centre",
+    "label": "Site 4 centre",
+    "lat": 70.665,
+    "lon": -147.98,
+    "depth_m": 35,
+    "in_dataset": false
+  },
+  {
+    "site": 5,
+    "dasar": "A",
+    "label": "5A",
+    "lat": 70.42147,
+    "lon": -145.93221,
+    "depth_m": 39,
+    "in_dataset": true
+  },
+  {
+    "site": 5,
+    "dasar": "B",
+    "label": "5B",
+    "lat": 70.42147,
+    "lon": -145.748,
+    "depth_m": 44,
+    "in_dataset": true
+  },
+  {
+    "site": 5,
+    "dasar": "C",
+    "label": "5C",
+    "lat": 70.42147,
+    "lon": -145.56379,
+    "depth_m": 53,
+    "in_dataset": true
+  },
+  {
+    "site": 5,
+    "dasar": "D",
+    "label": "5D",
+    "lat": 70.453,
+    "lon": -145.84011,
+    "depth_m": 46,
+    "in_dataset": true
+  },
+  {
+    "site": 5,
+    "dasar": "E",
+    "label": "5E",
+    "lat": 70.453,
+    "lon": -145.65589,
+    "depth_m": 48,
+    "in_dataset": true
+  },
+  {
+    "site": 5,
+    "dasar": "F",
+    "label": "5F",
+    "lat": 70.48453,
+    "lon": -145.84011,
+    "depth_m": 50,
+    "in_dataset": true
+  },
+  {
+    "site": 5,
+    "dasar": "G",
+    "label": "5G",
+    "lat": 70.48453,
+    "lon": -145.65589,
+    "depth_m": 52,
+    "in_dataset": true
+  },
+  {
+    "site": 5,
+    "dasar": "centre",
+    "label": "Site 5 centre",
+    "lat": 70.453,
+    "lon": -145.748,
+    "depth_m": 48,
+    "in_dataset": true
+  }
+];
+
+// Split into traces
+const inDataset   = records.filter(r => r.in_dataset && r.dasar !== 'centre');
+const notDataset  = records.filter(r => !r.in_dataset && r.dasar !== 'centre');
+const centres     = records.filter(r => r.dasar === 'centre');
+
+function makeTrace(pts, name, color, sym, size, opacity) {
+  return {
+    type: 'scattermap',
+    lat: pts.map(r => r.lat),
+    lon: pts.map(r => r.lon),
+    mode: 'markers',
+    name: name,
+    marker: { color: color, size: size, symbol: sym, opacity: opacity },
+    text: pts.map(r =>
+      `<b>${r.label}</b><br>` +
+      `Lat: ${r.lat}°N &nbsp; Lon: ${Math.abs(r.lon).toFixed(3)}°W<br>` +
+      `Depth: ${r.depth_m} m<br>` +
+      `In ML dataset: ${r.in_dataset ? '✓' : '—'}`
+    ),
+    hovertemplate: '%{text}<extra></extra>',
+  };
+}
+
+const traceIn   = makeTrace(inDataset,  'Sites 3 & 5 (dataset)', '#f97316', 'circle', 10, 0.9);
+const traceOut  = makeTrace(notDataset, 'Sites 1,2,4 (no data)', '#6b7280', 'circle', 8,  0.6);
+const traceCtr  = makeTrace(centres,    'Array centres',         '#fbbf24', 'circle', 16, 1.0);
+
+// Year labels — add text annotations on map for each site
+const yearLabels = {
+  3: '2008/2010/2012/2014',
+  5: '2008/2010/2012/2014',
+  1: '2007–2010', 2: '2007–2010', 4: '2007–2010',
+};
+const ctrPts = centres.map(r => {
+  const siteNum = parseInt(r.label.replace('Site ','').replace(' centre',''));
+  return {...r, yearLabel: yearLabels[siteNum] || ''};
+});
+const traceLabels = {
+  type: 'scattermap',
+  lat: ctrPts.map(r => r.lat + 0.022),
+  lon: ctrPts.map(r => r.lon),
+  mode: 'text',
+  name: 'Site labels',
+  text: ctrPts.map(r => `<b>Site ${parseInt(r.label)}</b><br><span style='font-size:9px'>${r.yearLabel}</span>`),
+  textfont: { color: '#e0e0e0', size: 11 },
+  hoverinfo: 'skip',
+};
+
+const layout = {
+  map: {
+    style: 'carto-darkmatter',
+    center: { lat: 70.6, lon: -149.85 },
+    zoom: 5.5,
+  },
+  margin: { t: 0, b: 0, l: 0, r: 0 },
+  height: 640,
+  paper_bgcolor: '#0e1117',
+  legend: {
+    bgcolor: '#1e293b',
+    font: { color: '#e0e0e0', size: 12 },
+    x: 0.01, y: 0.99, xanchor: 'left', yanchor: 'top',
+  },
+  showlegend: true,
+};
+
+Plotly.newPlot('map-container',
+  [traceOut, traceIn, traceCtr, traceLabels],
+  layout,
+  { responsive: true, displayModeBar: true }
+);
+</script>
+</body>
+</html>

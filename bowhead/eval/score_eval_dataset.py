@@ -117,10 +117,9 @@ def run(
     The legacy two-model signature (scratch/warmstart) is emulated by the
     CLI wrappers below so old call sites keep working.
     """
-    if device is None:
+    if device is None or device == "auto":
         device = best_device()
-        print(f"Device: {device}")
-
+    print(f"Device: {device}")
     # 1. Scan directory; infer labels from filename type
     print(f"\nScanning {eval_dir} ...")
     mat_paths: list[Path] = []
