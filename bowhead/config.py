@@ -45,6 +45,20 @@ class TrainConfig:
     class_weighted_loss: bool = True      # guards against residual imbalance
     early_stop_patience: int = 10         # epochs w/o val-AUC improvement
 
+    # augmentation (Tier-1 AP boosters)
+    use_spec_augment: bool = False        # SpecAugment freq+time masking
+    spec_aug_F: int = 15                  # max frequency-mask width (bins)
+    spec_aug_T: int = 12                  # max time-mask width (bins)
+    spec_aug_n_freq: int = 1              # number of frequency masks
+    spec_aug_n_time: int = 1              # number of time masks
+    use_mixup: bool = False               # Mixup interpolation
+    mixup_alpha: float = 0.2             # Beta distribution parameter
+
+    # loss function
+    use_focal_loss: bool = False          # replace CE with Focal loss
+    focal_gamma: float = 2.0             # focusing parameter (0 = CE)
+    focal_alpha: float | None = None     # positive-class prior weight
+
     # eval
     eval_prevalence: float = 1.0 / 9.0    # ~1 call : 8 transients
 
