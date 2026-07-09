@@ -92,6 +92,7 @@ class _Autoencoder(nn.Module):
         self._enc_channels = c * 4
         self._H_e = H_e
         self._W_e = W_e
+        self._out_hw = input_hw   # (121, 104) — target size to crop/pad back to
         self.latent_dim = latent_dim
 
     def encode(self, x: torch.Tensor) -> torch.Tensor:
@@ -102,7 +103,21 @@ class _Autoencoder(nn.Module):
         h = self.from_latent(z)
         h = h.view(-1, self._enc_channels, self._H_e, self._W_e)
         out = self.decoder(h)
-        # Crop to original spatial size if upsample overshots
+        # 3x MaxPool2d(2,2) on an odd input (121) floors each time
+        # (121->60->30->15); 3x Upsample(scale_factor=2) then only gets back
+        # to 120, one row short. Pad/crop back to the true input size so the
+        # reconstruction always matches the target shape exactly.
+        H_out, W_out = self._out_hw
+        _, _, H, W = out.shape
+        if H != H_out or W != W_out:
+            pad_h, pad_w = H_out - H, W_out - W
+            out = nn.functional.pad(
+                out,
+                (max(pad_w, 0) // 2, max(pad_w, 0) - max(pad_w, 0) // 2,
+                 max(pad_h, 0) // 2, max(pad_h, 0) - max(pad_h, 0) // 2),
+            )
+            if pad_h < 0 or pad_w < 0:
+                out = out[:, :, :H_out, :W_out]
         return out
 
     def forward(self, x: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
