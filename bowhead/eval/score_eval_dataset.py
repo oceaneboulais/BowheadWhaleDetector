@@ -148,8 +148,21 @@ def run(
     if len(np.unique(labels)) < 2:
         raise RuntimeError("Both classes must be present to compute metrics.")
 
+    # Per-file metadata (site/year/dasar) extracted from filenames, kept alongside
+    # predictions so post-hoc subgroup diagnostics don't require re-scanning the
+    # (very slow, USB-attached) eval directory again.
+    sites = np.empty(n, dtype="<U1")
+    years = np.empty(n, dtype="<U4")
+    dasars = np.empty(n, dtype="<U1")
+    for i, fp in enumerate(mat_paths):
+        m = _FNAME_RE.match(fp.stem)
+        sites[i] = m.group("site")
+        years[i] = "20" + m.group("yy")
+        dasars[i] = m.group("dasar")
+
     # 2. Score every model
     all_metrics: dict = {}   # name -> EvalMetrics
+    all_probs: dict = {}     # name -> np.ndarray, per-file call-probability
     for name, ckpt_path in models:
         print(f"\nLoading {name} from {ckpt_path} ...")
         model = _load_model(ckpt_path, device)
@@ -163,19 +176,46 @@ def run(
         del model
         metrics = score_predictions(labels, probs)
         all_metrics[name] = metrics
+        all_probs[name] = probs
         print(f"  {name}: AP={metrics.average_precision:.4f}  "
               f"ROC-AUC={metrics.roc_auc:.4f}")
+
+        # Quick subgroup breakdown (by year) printed immediately so we don't
+        # need to wait for the npz/HTML step to see where a model is failing.
+        for yr in sorted(set(years.tolist())):
+            mask = years == yr
+            yl, yp = labels[mask], probs[mask]
+            if len(np.unique(yl)) < 2:
+                print(f"    year={yr}: n={mask.sum():,} (single class, skipped)")
+                continue
+            ym = score_predictions(yl, yp)
+            print(f"    year={yr}: n={mask.sum():,}  prevalence={yl.mean():.4f}  "
+                  f"ROC-AUC={ym.roc_auc:.4f}  AP={ym.average_precision:.4f}")
+        for combo, mask in (
+            ("site", sites), ("dasar", dasars),
+        ):
+            for val in sorted(set(mask.tolist())):
+                sub = mask == val
+                sl, sp = labels[sub], probs[sub]
+                if len(np.unique(sl)) < 2:
+                    continue
+                sm = score_predictions(sl, sp)
+                print(f"    {combo}={val}: n={sub.sum():,}  prevalence={sl.mean():.4f}  "
+                      f"ROC-AUC={sm.roc_auc:.4f}  AP={sm.average_precision:.4f}")
 
     # 3. Save npz — one array pair per model, plus shared fields
     npz_out.parent.mkdir(parents=True, exist_ok=True)
     save_dict: dict = {"n": n, "prevalence": prevalence,
-                       "model_names": np.array(list(all_metrics.keys()))}
+                       "model_names": np.array(list(all_metrics.keys())),
+                       "file_site": sites, "file_year": years,
+                       "file_dasar": dasars, "file_label": labels}
     for name, m in all_metrics.items():
         key = name.replace(" ", "_")
         save_dict[f"{key}_precision"] = m.pr_precision
         save_dict[f"{key}_recall"]    = m.pr_recall
         save_dict[f"{key}_ap"]        = m.average_precision
         save_dict[f"{key}_roc_auc"]   = m.roc_auc
+        save_dict[f"{key}_probs"]     = all_probs[name]
     np.savez_compressed(str(npz_out), **save_dict)
     print(f"\nSaved PR curves → {npz_out}")
 

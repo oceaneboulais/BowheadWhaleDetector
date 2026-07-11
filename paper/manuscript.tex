@@ -1,0 +1,491 @@
+%	JASA LaTeX Sample File, Preprint Sample
+%
+%  Beginner Latex users should refer to their favorite online documentation
+%  here is one from the TeX Users Group 
+%	https://www.tug.org/twg/mactex/tutorials/ltxprimer-1.0.pdf
+%
+%  Useful FAQ from  https://journals.aps.org/revtex/revtex-faq
+% 
+
+
+
+
+%%%%%%% For Preprint
+%% For manuscript, 12pt, one column style
+
+ \documentclass[preprint,NumberedRefs]{JASAnew}
+
+%%%%% Preprint Options %%%%%
+%% The track changes option allows you to mark changes
+%% and will produce a list of changes, their line number
+%% and page number at the end of the article.
+%\documentclass[preprint,trackchanges]{JASAnew}
+
+%% authaffil option will make affil immediately
+% follow author, otherwise authors are grouped, and affiliations
+% are stacked underneath all the authors.
+%\documentclass[preprint,authaffil]{JASAnew}
+
+%% NumberedRefs is used for numbered bibliography and citations.
+%% Default is Author-Year style.
+% \documentclass[preprint,NumberedRefs]{JASAnew}
+
+%%%%%%% For Reprint
+%% For appearance of finished article; 2 columns, 10 pt fonts
+
+% \documentclass[reprint]{JASAnew}
+
+%%%%% Reprint Options %%%%%
+
+%% For testing to see if author has exceeded page length request, use 12pt option
+% \documentclass[reprint,12pt]{JASAnew}
+
+% authaffil option will make affil immediately
+% follow author, otherwise authors are grouped, and affiliations
+% are stacked underneath all the authors.
+%\documentclass[reprint,authaffil]{JASAnew}
+
+%% NumberedRefs is used for numbered bibliography and citations.
+%% Default is Author-Year style.
+% \documentclass[reprint,NumberedRefs]{JASAnew}
+
+%% TurnOnLineNumbers
+%% Make lines be numbered in reprint style:
+% \documentclass[reprint,TurnOnLineNumbers]{JASAnew}
+
+%%%Added by Aaron
+%\usepackage{subcaption}
+
+\begin{document}
+
+\title[JASA/Sample  JASA Article]{Enhancing bowhead whale detection using convolutional autoencoders}
+\author{Océane Boulais}
+
+\affiliation{Marine Physical Laboratory, Scripps Institution of Oceanography,  University of California San Diego, La Jolla, CA 92093, USA}
+
+\title[JASA/Sample  JASA Article]{Enhancing bowhead whale detection using convolutional autoencoders}
+\author{Aaron Thode}
+
+\affiliation{Marine Physical Laboratory, Scripps Institution of Oceanography,  University of California San Diego, La Jolla, CA 92093, USA}
+
+\author{Susanna B. Blackwell}
+\affiliation{Greeneridge Sciences, Inc., 5266 Hollister Ave., Suite 107, Santa Barbara, California 93111, USA}
+
+\preprint{Boulais 2026, JASA}		%  if you want want this message to appear in upper left corner of title page
+
+\date{\today} 
+
+\begin{abstract}
+% Abstracts are limited to 200 words for
+% regular articles. 
+
+Between 2007 and 2014 the Shell Exploration and Production Company funded Greeneridge Sciences, a bioacoustics consulting firm, to deploy 35 passive acoustic directional recorders along a 280 km swath of the Alaskan North Slope during the annual bowhead whale fall migration. The sensors detected and localized bowhead whale calls of various types. Each season a team of manual analysts annotated the time, frequency range, distance, and type of bowhead calls, eventually labeling nearly 8.7 million call detections, one of the largest annotated bowhead whale sound datasets in existence. In 2010 a simple three-layer neural network was developed to localize millions of these calls, but it could only recognize, not classify, relatively simple frequency-modulated sounds. Here we use modern machine learning to improve detection of these highly variable sounds. A convolutional autoencoder compresses single-channel signal-to-noise-ratio spectrogram images into a 32-element feature vector. This encoder trunk is then repurposed, either frozen at random initialization or warm-started from the trained autoencoder's weights, as the backbone of a supervised convolutional classifier trained to distinguish bowhead calls from other transient sounds, including seismic airgun pulses. Both the randomly-initialized and autoencoder-initialized classifiers were trained on an identical, leakage-controlled 100,000-sample dataset and evaluated on a fully independent, held-out set of 199,825 spectrograms spanning four field seasons (2008, 2010, 2012, 2014). Both classifiers generalize similarly well to this unseen data (area under the receiver operating characteristic curve of 0.959 and 0.956, average precision of 0.805 and 0.787, for the randomly-initialized and autoencoder-initialized classifiers respectively), indicating that unsupervised autoencoder pretraining neither meaningfully helps nor harms detection performance on this task and dataset.
+\end{abstract}
+
+%% pacs numbers not used
+
+\maketitle
+
+%  End of title page for Preprint option --------------------------------- %
+
+
+\section{\label{sec:1} Introduction}
+
+The Bering-Chukchi-Beaufort (BCB) population of bowhead whales is of great cultural importance to the Alaskan natives of the North Slope Borough. In the fall, the whales’ westward migration in the Beaufort Sea supports a subsistence hunt by three villages (Utqiaġvik, Nuiqsut, and Kaktovik), and by other villages in the Chukchi Sea.  The majority of the BCB population typically summers in the eastern Beaufort Sea (e.g., \cite{MooreReeves1993}). Beginning in late August, whales travel westward along the North Slope of Alaska, heading for their overwintering grounds in the Bering Sea. The fall migration in the Beaufort Sea is generally close and parallel to shore, mostly in water depths of 20–50 m \cite{WursigClark1993}.  
+Passive acoustic monitoring provides an approach for monitoring the geographic distribution, seasonality, behavioral state, and potentially the relative abundance of bowhead whales\cite{szesciorka2024basin}. During the summer and fall, bowheads produce a variety of sounds which past work has roughly divided into “simple” frequency-modulated (FM) calls and “complex” calls\cite{ljungblad1982underwater, clark1986acoustic,clark1984sounds,cummings1987sounds, moore2006listening,blackwell2007bowhead,stafford2021acoustic}.  Simple calls (Figure 1) generally include up calls, down calls, inflected calls, and undulated calls \cite{WursigClark1993}, whereas complex calls (Figure 2) include high calls, pulsed tonal and pulsive calls\cite{clark1984sounds}. The original call classification that was developed in the 1980s and 1990s is still used today, and little new research has focused on distinguishing bowhead call types during the summer and fall **update refs**.  
+
+
+
+\begin{figure}
+    \centering
+    \includegraphics[width=1\linewidth]{Figures/Upsweep_examples.jpg}
+    \caption{Examples of the diversity of frequency-modulated bowhead whale call “upsweeps”.  Each spectrogram duration is 3 seconds, showing 0-500 Hz bandwidth.  The last image on the lower right shows an example to two bowhead calls overlapping in time, but not in frequency.}
+    \label{fig:Upsweep diversity}
+\end{figure}
+    
+%The existence of multiple call types has been known for decades, but the function of different call types remains unknown and difficult to obtain.  Simple sounds may serve as contact calls; for example, Ref. [10] has described counter-calling in migrating bowheads using simple, individually distinctive calls, possibly to synchronize each other’s movements.  For complex calls, four different studies [11-13] have reported a preponderance of complex pulsive calls in active or sexually active groups of bowhead whales, but other studies [14, 15] were unable to find correlations between call types and behavior. 
+
+% The sheer volume of raw passive acoustic data from arctic waters has motivated the development of methods for automatically detecting, classifying, and localizing bowhead sounds**ref check**. 
+
+% ***Calls are challenging because of diversity and the presence of airguns**
+
+The sheer volume of raw passive acoustic data from arctic waters, combined with the
+need for timely analysis, has motivated the development of methods for automatically
+detecting, classifying, and localizing bowhead sounds, even during active seismic
+surveys \cite{thode2012automated}. Such automated approaches have become increasingly
+common across marine mammal monitoring more broadly, ranging from spectrogram-correlation
+and pitch-tracking classifiers \cite{mellinger2000bowhead, baumgartner2011generalized}
+to modern deep neural networks that can substantially lower false-alarm rates relative
+to traditional detectors \cite{shiu2020deep, allen2021convolutional}.
+
+However, bowhead calls are particularly challenging to detect and classify automatically
+for two reasons. First, the calls themselves are highly variable: while many are
+recognizable as simple frequency-modulated sweeps, a substantial fraction are difficult
+to categorize and are typically lumped into a generic "complex" category
+\cite{clark1984sounds, stafford2021acoustic}. Second, during the fall migration the calls
+frequently co-occur with seismic airgun pulses that overlap the same low-frequency band
+(below 500 Hz), masking true calls and generating transient signals that are readily
+confused with biological sounds \cite{blackwell2015effects, thode2012automated}.
+%In this chapter we mine a unique long-term acoustic dataset to determine whether modern unsupervised deep learning machine learning techniques can be used to improve the detection and classification of bowhead whales sounds during their fall migrations.  
+A previous automated detector and localizer has previously been developed by one of the PIs, that could detect calls but not classify them \cite{thode2012automated}.  This original algorithm used image processing to create hand-crafted feature vectors that were then passed through a simple three-layer neural network to flag whether a sound was a whale call or not.  This algorithm could thus be used to compute call rates and call spatial densities and has been applied to multiple previous studies\cite{thode2016source,thode2017decadal,thode2020roaring,thode2024statistical,blackwell2015effects}.  By contrast, this study lets a convolutional autoencoder\cite{guo2017deep,ozanich2021deep} learn a compact feature representation directly from spectrogram images, and evaluates whether initializing a supervised call/non-call classifier from this unsupervised representation (rather than training the same classifier architecture from random weights) measurably improves detection performance.
+
+Section II describes the equipment, deployment geometry, and data preprocessing used to create inputs to the unsupervised learning algorithm.  The section then describes the convolutional autoencoder architecture used to process the data, the supervised classifier built on top of it, and the training and evaluation procedures used to compare the two initialization strategies.  Section III reports the resulting detection performance, evaluated on a held-out set that is fully independent of the training data.
+
+
+The paper is organized as follows: Section~\ref{sec:Methods} presents
+information about the acoustic dataset, the autoencoder and classifier architectures,
+and the training/evaluation protocol. Section~\ref{sec:Results} reports the detection
+performance of the two classifier initialization strategies on the independent
+held-out evaluation set. Section~\ref{sec:Conclusion} discusses the implications of
+these results and outstanding questions for future work.
+
+
+\section{\label{sec:Methods} Methods}
+
+\subsection{\label{sec:DataOverview}Dataset}
+
+\begin{figure}
+    \centering
+    \includegraphics[width=1\linewidth]{Figures/DASAR_map.jpg}
+    \caption{:  Locations of the five DASAR sites (arrays, sites 1-5) in the Beaufort Sea, 2007–2014.  The inset shows the location of the map on the north coast of Alaska.  After 2011 Site 4 “flipped” four DASAR locations from the blue triangles to the hollow orange triangles.  This chapter uses data from Sites 3 and 5.}
+    \label{fig:DASAR_map}
+\end{figure}
+Between 2007 and 2014, as part of their exploration activities in the Beaufort Sea, the Shell Exploration and Production Company implemented an acoustic monitoring program to study the effects of industrial activities, particularly seismic airgun surveys, on bowhead whales during their fall migration (August–October). Arrays of Directional Autonomous Seafloor Acoustic Recorders (DASARs)\citep{greene2004directional} were deployed at five sites in the Beaufort Sea between Kaktovik and Harrison Bay, a 280 km span (Fig. 3)\cite{blackwell2015effects}.  
+ 
+
+DASARs are autonomous recording packages equipped with an DIFAR sonobuoy vector sensor package\cite{holler2014evolution,Kuzu6459697_DIFAR}, consisting of a omnidirectional acoustic pressure sensor (sensitivity of 149 dB re 1 $\mu$Pa/V) and two horizontal directional sensors capable of measuring the north-south and east-west components of acoustic particle velocity\cite{greene2004directional}.  This arrangement permits the azimuth of received sounds, such as bowhead whale calls, to be measured from individual DASARs.  Each time series is sampled at 1 kHz with a maximum usable acoustic frequency of 450 Hz due to antialiasing filter roll-off.  
+Each site consisted of three to 11 DASARs deployed in a triangular grid with 7 km separation; individual instruments are labeled ‘A’ through ‘G’ from south to north (Fig. 3).  Within a site, a unique call is often detected across multiple DASARS, and the resulting bearings can be triangulated to measure a whale’s location.  To avoid confusion, we define a “unique call” (UC) as a sound generated by a whale at a specific time and location, while a “call detection” (CD) is defined as the signal detected by a specific DASAR resulting from that unique call.  Thus, multiple CDs can result from a single UC, and by triangulating the bearings from the set of CDs (“CD set”) the generation time and location of the original UC can be estimated.  As a byproduct the tracking system records samples of the same UC at multiple ranges; however, the positions and ranges of calls are not used in the deep learning analysis presented here.
+
+\subsection{Manual Analysis}
+
+A subset of data from all years (typically 5 – 8 days) was also processed manually. Over the span of eight years, 8,690,929 CDs were reviewed by experienced manual analysts with multiple years of experience.  The analysts measured each CD's frequency span, duration, and bearing.  They then assigned sets of CDs to the same UC, localized the UC, and then classified the UC into various types of simple and complex calls, including up calls, down calls, undulations, tonal (constant frequency), and “complex calls”, a catch-all category that spans various kinds of calls that cannot be assigned to another category.  This combined manual and automated database remains one of the largest compiled datasets of bowhead sounds in existence and may represent the largest annotated dataset of localized bowhead call types in the world.
+
+\subsection{Data subset selection}
+Training sets for the deep learning algorithm were set to 100,000 samples, which were selected from Sites 3 and 5 during the years 2008, 2010, 2012, and 2014 (a total of 24 date/DASAR combinations).  DASARS ‘A’,’D’, and ‘G’, which represent the shallowest, median, and deepest water depths, were used from each site.   This subselection ensured that the deep learning algorithms would be trained on data that covered a variety of water depths between 30 and 55 m.   Sampling data across years permitted us to cover the full time span for the training set, an important consideration as evidence exists that the frequency content of the bowhead calls evolved across the years of the experiment\cite{thode2017decadal}.  
+
+For each year 5-8 days were sampled, corresponding to dates when manual analysis was also conducted.  For a given year, all DASARs at all sites were sampled on the same day, but the dates sampled varied between years, as the DASARs were deployed on slightly different dates each year.  Any difference between days sampled at Sites 3 and 5 for a given year arose because the sites were deployed and recovered at slightly different dates at the start and end of that year’s deployment.  The number of samples for a given year/DASAR combination in the training dataset was proportional to the fraction of signals present for that year/DASAR combination in the entire manually-analyzed dataset.  Thus the training dataset reflected the time and space distribution of whale calls through the entire dataset.  Table I lists the dates used for every site/year combination.  
+
+\begin{table}[ht]
+    \centering
+    \caption{Dates used for training dataset as a function of year and site.}
+    \label{tab:training_dates}
+    \begin{tabular}{|c | c | c|}
+        \hline
+        Year & Site 3 & Site 5 \\
+        \hline
+        2008 & 8/28, 9/06, 9/13, 9/21, 9/29 & Same but also 8/21 \\
+        2010 & 8/15, 8/21, 8/29, 9/05, 9/13, 9/27 & Same but no 9/27 \\
+        2012 & 8/25, 9/01, 9/07, 9/13, 9/18, 9/23, 9/29, 10/05 & Same but no 9/07 or 10/05 \\
+        2014 & 8/18, 8/28, 9/01, 9/17, 9/27 & Same \\
+        \hline
+    \end{tabular}
+\end{table}
+
+\subsection{Event Detection}
+
+To convert the raw acoustic data streams into discrete call samples to be fed into an autoencoder, a simple transient detector was applied to DASARs A,D, and G over the full 24-hour dataset for each day listed in Table \ref{tab:training_dates}.  No information from the manual database was applied during this initial event detection stage, to ensure that whale calls would be treated consistently with all other transient signals.
+
+The transient detector was an “energy” constant false alarm rate (CFAR) transient detector originally developed for the original detection algorithm\cite{thode2012automated}.  The detector used at 256-point Fast Fourier Transform (FFT) with 75\% overlap to compute a moving average of the background noise spectrum to which a new incoming spectrum was compared.  The time constant (equalization time) of the moving average was 25 seconds, and the spectrogram was converted to units of power spectral density (dB re 1 $\mu Pa^2$/Hz).   A filter bank of detectors was created, each covering 40 Hz in bandwidth, overlapped 50\%.  The lowest frequency detector thus spanned 25 to 65 Hz, the second band 45 to 85 Hz, and so on up to 450 Hz.  
+
+The purpose of running a filterbank of detectors was to avoid missing signals that were locally narrowband but high signal-to-noise ratio (SNR).  Other transient detectors have also been proposed for enhancing detection of locally narrowband signals across a wide frequency span. **Nuthall, PELF*** 
+The start of a new detection was logged whenever the integrated spectrum of any detection band in a new incoming FFT exceeded 5 dB SNR relative to the corresponding background noise band, and that threshold endured for at least 100 msec.  The detection was logged as ending when all detection bands fell below the 5 dB threshold.  Detections logged less than 50 msec from the previous detection were merged with the previous detection.
+
+Next, each transient detection was compared against the manual database to see whether the transient's time window overlapped a manual annotation time window by 50\% or more, ignoring annotations flagged as seals or unknown biologics.  If this overlap threshold was exceeded, the transient was labeled as a whale call and assigned the classification label associated with the annotation.  If a transient was sufficiently long to encompass multiple annotations, the earliest annotation was used.  **Only ** percent of manual annotations did not appear in the transient dataset.
+
+For every transient (regardless whether it is matched with an annotated whale call), five seconds of acoustic data were extracted from the omnidirectional channel, centered around the time of maximum peak power encountered across any filterbank.  A new spectrogram was created with a 256 pt FFT (90\% overlap) and converted to units of power spectral density (dB re 1 $\mu Pa^2$/Hz).  The median background spectrum was estimated from samples present in the first and last seconds of the time window and then subtracted from the middle three seconds of the spectrogram, to convert the image into units of dB SNR.  The final spectrogram image was 128 frequency bins by 119 time bins, spanning a fixed time window of three seconds and a bandwidth of 25 to 500 Hz.  An point crucial to future discussion is that the images were centered around the time of peak local power spectral density encountered between 25 and 450 Hz, to reduce the tendency of the autoencoder to map time-shifted signals into different parts of the feature space.  The images were stored as unsigned 8-bit integer resolution to make efficient use of memory.
+
+The total number of transient detections from Table \ref{tab:topMethods} was ***, of which ** were matched with a manual detection, or 8 transient signal for every call associated with a whale annotation.  To create a more balanced dataset for detecting whale calls, the ratio of calls to other tranisent in the training set was set 1 to 1.
+
+The final \textbf{autoencoder} training dataset was constructed by randomly selecting 46,549 images associated with whale calls and 53,451 images not associated with calls. Each set (call or transient) was sampled proportional to their total distribution across year, day, and Site. The ratio of of annotated whale calls vs transients varied with year, day, and Site, and the training dataset was subsampled to preserve this ratio for every year/day/Site combination. 
+A substantial number of transient detections were seismic airgun signals (20365 out of 50000, or 40.4 \%).
+
+The supervised classifier described in Sec.~\ref{sec:cnn_classifier} was trained on a
+separate, matched 100,000-sample draw from the same pool of transient detections (50,000
+manually-verified calls, Types 1--7, and 50,000 auto-detected non-call transients, Type 0,
+subsampled without replacement using a fixed random seed), so that the scratch- and
+warm-start-initialized classifiers could be compared on identical training data. This
+draw spanned only DASAR sites 3 and 5 (site 3: 50,503 images; site 5: 49,497 images) and
+DASARs A, D, and G (36,311; 36,298; and 27,391 images respectively), with call sub-type
+counts of 14,693 (Type 1), 10,750 (Type 2), 7,968 (Type 3), 4,763 (Type 4), 3,457 (Type
+5), 1,553 (Type 6), and 6,816 (Type 7).
+
+ 
+\subsection{\label{sec:autoencoder}Autoencoder architecture, training, and dimension reduction}
+
+% \begin{figure}
+%     \centering
+%     \includegraphics[width=0.75\linewidth]{Figures/Convolutional_Autoencoder_architecture.jpg}
+%     \caption{Architecture of convolutional autoencoder}
+%     \label{fig:autoencoder architecture}
+% \end{figure}
+
+% \begin{figure}[htbp]
+%     \centering
+%     \includegraphics[width=1\textwidth]{Figures/LD32_Updated_AE_Architecture.png}
+%     \caption{Hybrid convolutional autoencoder architecture for bowhead whale call 
+%     representation learning. The encoder accepts a 2-channel input: a spectrogram of the signal to noise ratio (\texttt{SNR\_gram}) and the normalised transport velocity (\texttt{NTV\_gram}), each $121\times104$ pixels, and 
+%     applies three successive \texttt{Conv2d}+BatchNorm+ReLU+MaxPool blocks 
+%     ($32{\to}64{\to}128$ channels), progressively halving spatial resolution while 
+%     deepening feature representations. The resulting feature volume is flattened and 
+%     passed through two fully connected layers (\textsc{fc}\,64, \textsc{fc}\,32) to 
+%     produce a 32-dimensional latent embedding $\mathbf{z} \in \mathbb{R}^{32}$. The 
+%     decoder mirrors this process: two fully connected layers (\textsc{fc}\,64) 
+%     expand the latent code, a reshape operation restores spatial structure 
+%     (128 channels, 13 rows), and three transposed convolution blocks reconstruct 
+%     the original spatial dimensions, yielding a 2-channel output matching the input. 
+%     Training minimises mean squared reconstruction loss across both channels 
+%     simultaneously.}
+%     \label{fig:autoencoder_architecture}
+% \end{figure}
+
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=1.1\textwidth]{Figures/autoencoder_arch_Autoencoder_v13_100E_32LD_32C_AutoManual_Combined_100K_Date20260416-180022.png}
+    \caption{Convolutional autoencoder architecture for bowhead whale call representation. The encoder reduces a single-channel spectrogram ($1\times121\times104$; 0–500 Hz, 3 s) through three Conv2D(3×3)+BatchNorm+ReLU+MaxPool2D(2×2) blocks, doubling channel depth at each stage ($32\to64\to128$) while halving spatial resolution to $128\times15\times13$. The flattened feature map (24,960 elements) is projected to a 32-dimensional latent vector via two FC layers (24960→64→32). The decoder mirrors this path (32→64→24960, reshape to $128\times15\times13$) and reconstructs the original dimensions through three ConvTranspose2D(2×2, stride=2)+BatchNorm+ReLU blocks, with output padding (1,0) on the final layer to recover the asymmetric input shape. Total trainable parameters: 3,358,593. Trained with Adam (lr=0.001), MSE loss, 100 epochs, 100K spectrogram samples.}
+    \label{fig:autoencoder_architecture}
+\end{figure}
+
+The unsupervised deep learning architecture used for this study was a convolutional autoencoder \cite{hinton2006reducing}, which has been successful in the past for compressing acoustic signals \cite{ozanich2021deep,chien2023automatic}. We built the system in the open-source framework PyTorch \cite{paszke2019pytorch}, which began by normalizing each training spectrogram image (121 frequency bins × 104 time bins) so its pixel values ranged from 0 to 1 using min-max normalization applied independently to each sample. The image was then passed through three successive convolutional blocks, each consisting of a 3×3 convolutional kernel with stride one and same-padding (padding=1), followed by batch normalization \cite{ioffe2015batch}, a ReLU activation \cite{nair2010rectified}, and 2×2 max pooling \cite{lecun1998gradient}. The number of feature channels increased from 32 to 64 to 128 across the three blocks, while max pooling halved both spatial dimensions at each step, reducing the 121×104 input to 15×13 feature maps after the third block. The resulting 128-channel feature maps were flattened to a 24,960-element vector (128 × 15 × 13) and passed through two fully connected layers (24,960→64→32) with a ReLU activation between them, producing a 32-dimensional latent vector. The decoder first expands this latent vector back through two fully connected layers (32→64→24,960) with ReLU, reshapes the result to 128×15×13, and then applies three transposed convolutional layers (2×2 kernel, stride 2) that progressively expand the feature maps from 128 to 64 to 32 channels — the first two blocks followed by batch normalization and ReLU — before a final transposed convolution projects back to a single-channel output at the original 121×104 resolution. The decoder output is not passed through a sigmoid or clamping function, leaving the reconstruction unconstrained in value. Training was performed using the Adam optimizer \cite{kingma2015adam} (learning rate of $10^-3$) to minimize pixel-wise mean squared error (MSE) between the input and reconstructed spectrogram. Figure \ref{fig:autoencoder_architecture} illustrates the full encoder–decoder structure.
+
+The system was trained for 100 epochs on 100,000 samples with a mini-batch size of 32. Reconstructed images were spot-checked against original images to qualitatively verify that the latent space had sufficient dimensions to reproduce the original signals (Fig.~\ref{fig:Reconstruction Example}). Through this approach we determined that 16 dimensions were insufficient for representing the full repertoire of whale calls. To visualize the resulting latent space, the 32-dimensional latent representations were reduced to three dimensions using the Uniform Manifold Approximation and Projection (UMAP) algorithm \cite{mcinnes2018umap} with 15 nearest neighbors and a minimum distance of 0.1.
+
+
+
+% The unsupervised deep learning architecture used for this study was a convolutional autoencoder\cite{bengio2017deep}, which has been successful in the past for compressing acoustic signals \cite{ozanich2021deep,chien2023automatic}.  We built the system in the open-source language PyTorch, which began by normalizing each training spectrogram image (121 frequency bins × 104 time bins) so its pixel values ranged from 0 to 1 using min-max normalization applied independently to each sample. The image was then passed through three successive convolutional blocks, each consisting of a 3×3 convolutional kernel with stride one and same-padding (padding=1), followed by batch normalization, a ReLU activation, and 2×2 max pooling\cite{bengio2017deep,lecun1998convolutional,lecun2015deep}. The number of feature channels increased from 32 to 64 to 128 across the three blocks, while max pooling halved both spatial dimensions at each step, reducing the 121×104 input to 15×13 feature maps after the third block. The final 128-channel feature maps were flattened to a 24,960-element vector (128 × 15 × 13), before being passed through two fully connected layers whose outputs are 64 and 32 elements respectively, with a ReLU activation between them, producing a final compressed latent vector of 32 elements. The decoder converts this feature vector back into an image using three transposed convolutional layers (2×2 kernel, stride 2), each followed by batch normalization and ReLU, which progressively expand the feature maps from 128 to 64 to 32 channels before a final transposed convolution projects back to a single-channel output at the original 121×104 resolution. The decoder output is not passed through a sigmoid or clamping function, leaving the reconstruction unconstrained in value. Training was performed using the Adam optimizer (learning rate $10^{-3}$) to minimize pixel-wise mean squared error (MSE) between the input and reconstructed spectrogram.  Figure \ref{fig:autoencoder_architecture} illustrates the structure of the encoder (left) and decoder (right).
+
+% The system was trained for 100 epochs on 100,000 samples with a mini-batch size of 32. Reconstructed images were spot-checked against original images to qualitatively verify that the latent space had sufficient dimensions to reproduce the original signals (Fig. \ref{fig:Reconstruction Example}). 
+% Through this approach we determined that 16 dimensions were insufficient for representing the full repertoire of whale calls. To visualize and edit the resulting latent space vectors, the 32-dimensional latent representations were then reduced to three dimensions using the Uniform Manifold Approximation and Projection (UMAP) algorithm\cite{mcinnes2018umap, healy2024uniform} using 15 nearest neighbors and a minimum distance of 0.1.
+
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=1.1\textwidth]
+    {Figures/reconstructions_Autoencoder_v13_100E_32LD_32C_AutoManual_Combined_100K_Date20260416-180022}
+    \caption{Comparison between original input images (top) and the autoencoder's reconstructed (bottom) images from 32-dimension latent space of the 3 second recordings with time on the x-axis and frequency in Hz on the y-axis.}
+    \label{fig:Reconstruction_Example}
+\end{figure}
+
+
+\subsection{Dataset editing}
+We needed to edit the training dataset for several reasons:  (1) Identify images that had multiple signals present, (2) identify whale calls that had not been logged in the manual database, and (3) identify situations were transients were mislabeled as whale calls, primarily arising from airgun signals masking a true call.
+
+\subsection{Supervised CNN classifier}
+\label{sec:cnn_classifier}
+
+To complement the unsupervised autoencoder, a supervised convolutional
+classifier was built by attaching a linear softmax head directly to the
+autoencoder's encoder trunk (three Conv+BatchNorm+ReLU+MaxPool blocks
+followed by the FC-64$\to$FC-32 bottleneck; Fig.~\ref{fig:autoencoder_architecture}),
+trained end-to-end with class-weighted cross-entropy. Two training regimes
+were compared to isolate the contribution of the unsupervised pretraining:
+
+\begin{itemize}
+    \item \textbf{Scratch}: the encoder trunk is randomly initialised and
+    trained jointly with the classification head.
+    \item \textbf{Warm-start}: the encoder trunk is initialised from the
+    trained autoencoder's weights (Sec.~\ref{sec:autoencoder}) and then
+    fine-tuned jointly with the classification head. Of the encoder's 27
+    weight tensors, 25 were successfully transferred from the autoencoder
+    checkpoint; the remaining 2 (belonging to the newly-added classification
+    head) were randomly initialised, since the autoencoder has no
+    equivalent layer.
+\end{itemize}
+
+Both variants were trained with the Adam optimiser (learning rate
+$10^{-3}$, batch size 32), with early stopping after 10 epochs without
+improvement in validation ROC-AUC (a ceiling of 100 epochs was never
+approached: both runs stopped at epoch 12, with the best validation
+ROC-AUC obtained at epoch 2 in both cases — 0.9533 for the scratch model
+and 0.9469 for the warm-start model — after which validation ROC-AUC
+declined monotonically while training loss continued to fall, indicating
+overfitting to the training partition beyond this point).
+
+\subsubsection{Leakage-free evaluation splits}
+Because a single unique call (UC) is frequently detected redundantly across
+multiple DASARs (A/D/G) on the same recording day, a naive random
+per-image train/test split would place near-duplicate views of the same
+call on both sides of the split, inflating performance metrics. All
+train/validation/test splits were therefore constructed using a
+\emph{grouped}, stratified partitioning scheme, with the group key set to
+the date$\times$site combination (51 distinct date$\times$site groups
+across the full 100,000-image training draw): every image recorded at a
+given site on a given day was assigned entirely to one partition (train,
+validation, or test), and the partitions were verified computationally to
+share zero group overlap. Models were trained on a nominal 70/15/15
+train/validation/test split (realised here as 70,870 training images
+across 36 groups, 12,746 validation images across 7 groups, and 16,384
+test images across 8 groups, each partition retaining an approximately
+balanced call fraction of 0.49--0.53), with the validation split used only
+for early-stopping model selection.
+
+\subsubsection{Realistic-prevalence evaluation}
+Training used a class-balanced (approximately 1:1 call:transient) sample
+to stabilise optimisation. Because the true deployment prevalence is
+substantially lower (approximately 1 call per 8 non-call transients, as
+determined from Sec.~\ref{sec:DataOverview}), all reported test-set
+average-precision values were computed after resampling the held-out test
+set's negative class to match this $\approx$1:9 realistic prevalence,
+while ROC-AUC (a prevalence-invariant metric) was computed on the full
+held-out set as-is.
+
+\subsubsection{Held-out evaluation dataset}
+Both classifiers were subsequently scored, without any further training or
+fine-tuning, against a wholly independent held-out evaluation directory
+consisting of 199,825 spectrograms spanning DASAR sites 3 and 5 and years
+2008, 2010, 2012, and 2014 (22,159 manually verified bowhead calls, Types
+1--7; 177,666 auto-detected non-call transients, Type 0; natural prevalence
+0.1109). This evaluation directory is entirely disjoint from the 100,000
+training images used in Sec.~\ref{sec:cnn_classifier}: it was compiled and
+stored separately, and no image, date, site, or DASAR combination present
+in the training draw was reused as evaluation data. This constitutes a
+substantially stricter generalisation test than the internal held-out test
+split described above, since the internal test split — while
+group-disjoint from the training set — is still drawn from the same
+underlying collection process and the same restricted set of sites,
+DASARs, and sampled dates as the training data, whereas the independent
+evaluation directory was compiled, labeled, and stored as an entirely
+separate artifact.
+
+
+\section{\label{sec:Results} Results}
+
+\subsection{Internal held-out test performance}
+
+\begin{table}[ht]
+    \centering
+    \caption{Held-out \emph{internal} test performance of the supervised CNN detector
+    (i.e., evaluated on the 15\% grouped test split carved from the same
+    100,000-image training draw described in Sec.~\ref{sec:cnn_classifier}),
+    comparing random initialization against warm-starting the encoder trunk from the
+    convolutional autoencoder. Metrics are reported at the realistic
+    $\approx$1:9 call:transient prevalence (Sec.~\ref{sec:cnn_classifier}).}
+    \label{tab:cnn_results}
+    \begin{tabular}{|l|c|c|c|c|}
+        \hline
+        Model & Test $N$ & ROC-AUC & Avg.\ Precision & Precision @ Recall=0.70 \\
+        \hline
+        Scratch (random init)     & 16{,}384 & 0.968 & 0.840 & 0.842 \\
+        Warm-start (AE-init)      & 16{,}384 & 0.964 & 0.825 & 0.810 \\
+        \hline
+    \end{tabular}
+\end{table}
+
+\subsection{Independent held-out evaluation performance}
+
+\begin{table}[ht]
+    \centering
+    \caption{Detection performance of the two classifier initialization strategies on
+    the fully independent 199,825-spectrogram held-out evaluation directory
+    described in Sec.~\ref{sec:cnn_classifier} (natural prevalence 0.1109; both
+    models scored without any further training on this data). This is the primary
+    measure of real-world generalisation, since — unlike the internal test split of
+    Table~\ref{tab:cnn_results} — this evaluation directory was compiled and stored
+    entirely independently of the training data.}
+    \label{tab:benchmark_results}
+    \begin{tabular}{|l|c|c|c|c|}
+        \hline
+        Model & Embedding dim. & ROC-AUC & Avg.\ Precision & Precision @ Recall=0.70 \\
+        \hline
+        Custom CNN (scratch)      & 32   & 0.959 & 0.805 & 0.767 \\
+        Custom CNN (warm-start)   & 32   & 0.956 & 0.787 & 0.741 \\
+        \hline
+    \end{tabular}
+\end{table}
+
+On this independent evaluation set, both classifiers generalise to essentially the
+same degree: the scratch-initialised model outperforms the warm-start model by a
+narrow, likely practically-insignificant margin on every metric (0.003 in ROC-AUC,
+0.018 in average precision, 0.026 in precision at fixed recall). Performance was
+also consistent across evaluation subgroups: broken down by year, ROC-AUC ranged from
+0.951--0.961 (scratch) and 0.951--0.956 (warm-start) across the four field seasons
+(2008, 2010, 2012, 2014); broken down by site, ROC-AUC ranged from 0.954--0.964
+(scratch) and 0.952--0.960 (warm-start) across sites 3 and 5; and broken down by
+DASAR, ROC-AUC ranged from 0.957--0.963 (scratch) and 0.953--0.959 (warm-start)
+across DASARs A, D, and G. The absence of any subgroup in which either model
+collapses toward chance-level performance (ROC-AUC $\approx$ 0.5) indicates that
+this small scratch-vs-warm-start gap is a stable, genuine property of the two
+initialization strategies on this dataset, rather than an artifact confined to a
+particular year, site, or recording condition. We note that unsupervised
+autoencoder pretraining is therefore not shown here to confer a measurable
+generalisation advantage over training the same classifier architecture from
+random initialization; whether this null result reflects a genuine property of
+this task and dataset, or a limitation of the specific autoencoder pretraining
+recipe used here (e.g., its purely reconstructive, non-contrastive objective, or
+the modest scale of the 32-dimensional latent bottleneck), is discussed further
+in Sec.~\ref{sec:Conclusion}.
+
+\section{Discussion}
+
+-the value of using latent space for reviewing user errors
+
+-sensitivity to time window.
+
+\section{\label{sec:Conclusion}Conclusion}
+
+---
+
+\begin{acknowledgments}
+This research was supported by  North Pacific Research Board under xxxx project. 
+\end{acknowledgments}
+
+
+
+
+% \section{Making the Bibliography Using BibTeX}
+% Authors are highly  recommended to use BibTeX to produce their
+% bibliographies. The results will be predictable and even if
+% it might take some time to get comfortable with  using BibTeX,
+% in the long run it will save you endless aggravation.
+
+% A resource for making your bibliography entries
+% correctly is included in this package: 
+% JASA-ReferenceStyles.pdf. You will also find
+% the files
+% bibsamp1.tex/.pdf and bibsamp2.tex/.pdf
+% for examples of output; and sampbib.bib for an example of
+% how to make your .bib database entries.
+
+% There are two possible bibliography styles: the default, author-year,
+% and the optional style, Numbered\-Refs, which you would call using\\
+% {\verb+\documentclass[preprint,NumberedRefs]{JASAnew}+ }
+
+% Every \verb+\cite+ will produce a citation and an entry in the
+% bibliography and every cite must have a matching entry in the bib
+% database file.
+
+% \verb+\citep{}+ should be used rather than \verb+\cite{}+
+% Note that the citations are hyperlinked to their entries in the
+% bibliography:
+
+% Normal journal cite: \citep{joursamp1},
+%  Book reference \citep{booksamp1},
+% In press, \citep{inpress3}. 
+% Computer language documentation:
+% \citep{sampcode2}.
+
+
+% \begin{quote}
+% \it
+% NOTE:\\
+% Once you have used BibTeX you
+% should open the resulting .bbl file and cut and paste the entire contents 
+% into the end of your article. You should also comment out
+% \verb+\bibliography{<your .bib file>}+, ie,
+% \verb+%\bibliography{<your .bib file>}+.
+% \end{quote}
+
+% Make your bibliography by doing: pdflatex filename,  bibtex filename,
+% pdflatex filename, pdflatex filename.
+
+% {\bfseries\itshape
+% Compare the results you get with\\
+% {\verb+\documentclass[preprint]{JASAnew}+ }\\
+% vs.\\
+% {\verb+\documentclass[preprint,NumberedRefs]{JASAnew}+ }
+% }
+
+\bibliography{Bowhead_AI_references.bib}
+
+
+\end{document}

@@ -17,7 +17,9 @@ from __future__ import annotations
 
 import argparse
 import base64
+import datetime
 import io
+import os
 import re
 from pathlib import Path
 
@@ -343,7 +345,22 @@ def build_html(npz_path: Path, out_path: Path, eval_dir: Path | None = None) -> 
         "</div>"
     )
 
-    panel = dataset_section + how_to_read
+    # ── Generation-date banner (uses the source npz's mtime, i.e. when the
+    #    scoring run that produced these numbers actually finished — not
+    #    "now" — so the banner reflects the data, not the HTML rebuild time).
+    gen_date = datetime.datetime.fromtimestamp(
+        os.path.getmtime(npz_path)
+    ).strftime("%Y-%m-%d %H:%M")
+    gen_banner = (
+        '<div style="font-family:sans-serif;font-size:13px;color:#555;'
+        'background:#fff8dc;border:1px solid #e0d090;border-radius:4px;'
+        'max-width:1100px;margin:10px auto 0 auto;padding:8px 16px;text-align:center">'
+        f'<strong>Results generated:</strong> {gen_date} '
+        f'&mdash; from <code style="font-size:11px">{npz_path.name}</code>'
+        '</div>'
+    )
+
+    panel = gen_banner + dataset_section + how_to_read
 
     html = out_path.read_text()
     html = html.replace("</body>", panel + "\n</body>")
