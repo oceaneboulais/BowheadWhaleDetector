@@ -181,7 +181,7 @@ For each year 5-8 days were sampled, corresponding to dates when manual analysis
     \end{tabular}
 \end{table}
 
-\subsection{Event Detection}
+\subsection{\label{sec:EventDetection}Event Detection}
 
 To convert the raw acoustic data streams into discrete call samples to be fed into an autoencoder, a simple transient detector was applied to DASARs A,D, and G over the full 24-hour dataset for each day listed in Table \ref{tab:training_dates}.  No information from the manual database was applied during this initial event detection stage, to ensure that whale calls would be treated consistently with all other transient signals.
 
@@ -267,7 +267,7 @@ The system was trained for 100 epochs on 100,000 samples with a mini-batch size 
 \end{figure}
 
 
-\subsection{Dataset editing}
+\subsection{\label{sec:DatasetEditing}Dataset editing}
 We needed to edit the training dataset for several reasons:  (1) Identify images that had multiple signals present, (2) identify whale calls that had not been logged in the manual database, and (3) identify situations were transients were mislabeled as whale calls, primarily arising from airgun signals masking a true call.
 
 \subsection{Supervised CNN classifier}
@@ -417,11 +417,104 @@ in Sec.~\ref{sec:Conclusion}.
 
 \section{Discussion}
 
--the value of using latent space for reviewing user errors
+\subsection{The value of the latent space for reviewing dataset and labeling errors}
 
--sensitivity to time window.
+Beyond serving as a feature-extraction backbone for the supervised classifier
+(Sec.~\ref{sec:cnn_classifier}), the autoencoder's 32-dimensional latent space
+proved useful as a diagnostic tool for auditing the training dataset itself.
+Because every spectrogram in the 100,000-image pool has a corresponding point
+in this compressed representation, the full dataset could be visualized as a
+low-dimensional UMAP projection (Sec.~\ref{sec:autoencoder}) and inspected by
+neighborhood rather than by exhaustively re-listening to or re-viewing
+spectrograms in collection order. This was the practical mechanism behind the
+dataset-editing pass described in Sec.~\ref{sec:DatasetEditing}: images
+containing multiple overlapping signals, whale calls that had not been logged
+in the manual database, and transients that had been mislabeled as calls
+(most often airgun pulses masking a genuine call) were located by identifying
+anomalous or mixed-label clusters in the latent-space projection and then
+auditing the comparatively small number of spectrograms responsible for them,
+rather than by reviewing the entire corpus. In effect, the latent space turns
+the problem of finding labeling errors scattered across tens of thousands of
+automatically-compiled images into the much smaller problem of explaining a
+handful of outlying or mixed clusters — an approach whose value should only
+grow as automatically-labeled bioacoustic datasets reach a scale (Sec.~\ref{sec:1})
+that precludes full manual re-verification. We note that this account of the
+latent space's diagnostic value is qualitative: we did not separately track
+how many labeling corrections were made through this route versus other QA
+steps, nor compare it against alternative auditing strategies (e.g., ranking
+by classifier confidence or reconstruction error alone); quantifying the
+efficiency of latent-space-guided auditing relative to these alternatives
+would be a natural follow-up analysis.
+
+\subsection{Sensitivity to time-window alignment}
+
+A design choice with implications for both the autoencoder and the
+downstream classifier is the fixed-duration, peak-power-centered spectrogram
+window described in Sec.~\ref{sec:EventDetection}: rather than aligning each
+image to, for example, the detector's onset time, every spectrogram is
+centered on the time of maximum local power spectral density encountered
+between 25 and 450 Hz. This choice was made specifically to reduce the
+tendency of the autoencoder to encode a signal's absolute temporal position
+within the window as a latent feature, since a purely reconstructive
+objective has no explicit incentive toward time-shift invariance and would
+otherwise be free to map same-call, different-alignment spectrograms to
+different, disconnected regions of the latent space.
+
+We have not, however, performed a controlled ablation that directly
+quantifies how sensitive either the latent representation or the downstream
+classifier's accuracy is to this alignment convention — for example, by
+re-centering the same held-out calls at several offsets from the peak-power
+point and measuring the resulting change in embedding distance or classifier
+score. The consistency of classifier performance across four field seasons,
+two DASAR sites, and three DASAR channels (Sec.~\ref{sec:Results}) is
+reassuring but only an indirect argument, since it does not rule out the
+alignment convention behaving differently for calls of different type,
+duration, or SNR than it does in aggregate. We therefore flag this
+explicitly as an open question rather than a validated property of the
+pipeline: a direct sensitivity analysis along these lines would clarify
+whether peak-power centering is a genuine robustness safeguard, a
+performance-neutral convention, or a source of latent hidden bias inherited
+from the original CFAR detection pipeline (Sec.~\ref{sec:EventDetection}).
 
 \section{\label{sec:Conclusion}Conclusion}
+
+We built and evaluated a two-stage deep learning pipeline — an unsupervised
+convolutional autoencoder followed by a supervised convolutional classifier
+sharing its encoder architecture — for distinguishing bowhead whale calls
+from other transient sounds, including seismic airgun pulses, in passive
+acoustic recordings from the Alaskan North Slope. Both a randomly-initialized
+classifier and a classifier warm-started from the autoencoder's encoder
+weights were trained on an identical, leakage-controlled 100,000-sample
+dataset and evaluated, without further tuning, on a fully independent
+held-out set of 199,825 spectrograms spanning four field seasons (2008,
+2010, 2012, 2014), two DASAR sites, and three DASAR channels
+(Table~\ref{tab:benchmark_results}). Both classifiers generalized well and
+similarly to this unseen data (ROC-AUC of 0.959 and 0.956, average precision
+of 0.805 and 0.787, for the scratch and warm-start models respectively), and
+this small performance gap was stable across every year/site/DASAR subgroup
+examined (Sec.~\ref{sec:Results}), indicating a genuine, if modest, property
+of the two initialization strategies on this task rather than an artifact of
+a particular subset of the data. Contrary to our initial expectation,
+unsupervised autoencoder pretraining did not confer a measurable
+generalization advantage over training the same architecture from random
+initialization on this dataset.
+
+Two aspects of the pipeline merit further attention, as discussed above.
+First, the autoencoder's latent space proved to be a practical tool for
+auditing the training dataset for labeling errors (Sec.~\ref{sec:DatasetEditing}),
+suggesting that latent-space-guided review could be formalized into a
+reusable quality-assurance step for future automatically-compiled bioacoustic
+datasets, rather than remaining an ad hoc part of dataset construction.
+Second, while the spectrogram images are deliberately centered on peak local
+power to reduce time-shift sensitivity in the latent space, we have not
+directly measured how sensitive detection performance or the latent
+representation itself is to this alignment convention, and we flag this as a
+concrete direction for follow-up analysis. More broadly, this detector
+operates at the coarse level of distinguishing a call from a non-call
+transient; the seven manually-annotated call sub-types (Types 1--7) present
+in the training data were not modeled here, and discriminating among them
+remains an open target for future work building on the representation
+developed in this study.
 
 ---
 

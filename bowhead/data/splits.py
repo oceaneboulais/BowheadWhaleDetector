@@ -88,6 +88,14 @@ def grouped_split(
     # _holdout returns indices into its input arrays, so compose carefully.
     test_idx, rest_idx = _holdout(labels, groups, test_frac, seed)
 
+    if val_frac <= 0.0:
+        # No validation split requested; everything left over is training data.
+        return GroupedSplit(
+            train=rest_idx,
+            val=np.array([], dtype=rest_idx.dtype),
+            test=test_idx,
+        )
+
     # val_frac is relative to the whole dataset; rescale to the remainder.
     rel_val = val_frac / (1.0 - test_frac)
     val_rel, train_rel = _holdout(labels[rest_idx], groups[rest_idx], rel_val, seed + 1)
