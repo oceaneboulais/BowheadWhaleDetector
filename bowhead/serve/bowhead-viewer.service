@@ -1,0 +1,27 @@
+[Unit]
+Description=Bowhead Whale Embedding Viewer
+After=network.target
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+User=orin
+WorkingDirectory=/opt/bowhead-viewer/BowheadWhaleDetector
+ExecStart=/usr/local/bin/gunicorn \
+    --workers 4 \
+    --bind 0.0.0.0:8000 \
+    --timeout 300 \
+    --access-logfile - \
+    --error-logfile - \
+    bowhead.serve.app:app
+
+# Restart policy
+Restart=on-failure
+RestartSec=10
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
