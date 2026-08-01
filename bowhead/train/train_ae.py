@@ -108,9 +108,16 @@ class _Autoencoder(nn.Module):
     def forward(self, x: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
         z = self.encode(x)
         recon = self.decode(z)
-        # Match input spatial dims exactly
+        # Align spatial dimensions: pad if recon is smaller, crop if larger.
+        # (121 h → MaxPool×3 → 15 → Upsample×3 → 120, i.e. off-by-one for odd dims)
         if recon.shape[-2:] != x.shape[-2:]:
-            recon = recon[:, :, :x.shape[-2], :x.shape[-1]]
+            H_t, W_t = x.shape[-2], x.shape[-1]
+            H_r, W_r = recon.shape[-2], recon.shape[-1]
+            if H_r < H_t or W_r < W_t:
+                pad_h = max(0, H_t - H_r)
+                pad_w = max(0, W_t - W_r)
+                recon = torch.nn.functional.pad(recon, (0, pad_w, 0, pad_h))
+            recon = recon[:, :, :H_t, :W_t]
         return recon, z
 
 
@@ -181,7 +188,7 @@ def train_ae(
 
     optimiser = torch.optim.Adam(model.parameters(), lr=lr)
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
-        optimiser, mode="min", patience=5, factor=0.5, min_lr=1e-6, verbose=True)
+        optimiser, mode="min", patience=5, factor=0.5, min_lr=1e-6)
     criterion = nn.MSELoss()
 
     # ------------------------------------------------------------------ training
@@ -232,7 +239,8 @@ def train_ae(
                 "to_latent":    model.to_latent.state_dict(),
                 "decoder":      model.decoder.state_dict(),
                 "from_latent":  model.from_latent.state_dict(),
-                "model_state":  model.state_dict(),
+                # "state_dict" key matches what load_pretrained_encoder expects
+                "state_dict":   model.state_dict(),
                 "input_hw":     [H, W],
                 "latent_dim":   model.latent_dim,
                 "base_channels": 32,

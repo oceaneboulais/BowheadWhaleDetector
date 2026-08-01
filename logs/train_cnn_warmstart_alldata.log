@@ -1,0 +1,235 @@
+/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/runpy.py:127: RuntimeWarning: 'bowhead.train.train_cnn' found in sys.modules after import of package 'bowhead.train', but prior to execution of 'bowhead.train.train_cnn'; this may result in unpredictable behaviour
+  warn(RuntimeWarning(msg))
+Grouped split (verify 0 overlap):
+  train:  228847 images |     35 groups | call fraction 0.429
+  val  :   59032 images |      9 groups | call fraction 0.454
+  test :   64993 images |      8 groups | call fraction 0.502
+  group overlap across partitions: 0 (must be 0)
+Warm-start: matched 25 encoder tensors, missing 2, unexpected 0
+/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/runpy.py:127: RuntimeWarning: 'bowhead.train.train_cnn' found in sys.modules after import of package 'bowhead.train', but prior to execution of 'bowhead.train.train_cnn'; this may result in unpredictable behaviour
+  warn(RuntimeWarning(msg))
+/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/runpy.py:127: RuntimeWarning: 'bowhead.train.train_cnn' found in sys.modules after import of package 'bowhead.train', but prior to execution of 'bowhead.train.train_cnn'; this may result in unpredictable behaviour
+  warn(RuntimeWarning(msg))
+/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/runpy.py:127: RuntimeWarning: 'bowhead.train.train_cnn' found in sys.modules after import of package 'bowhead.train', but prior to execution of 'bowhead.train.train_cnn'; this may result in unpredictable behaviour
+  warn(RuntimeWarning(msg))
+/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/runpy.py:127: RuntimeWarning: 'bowhead.train.train_cnn' found in sys.modules after import of package 'bowhead.train', but prior to execution of 'bowhead.train.train_cnn'; this may result in unpredictable behaviour
+  warn(RuntimeWarning(msg))
+/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/runpy.py:127: RuntimeWarning: 'bowhead.train.train_cnn' found in sys.modules after import of package 'bowhead.train', but prior to execution of 'bowhead.train.train_cnn'; this may result in unpredictable behaviour
+  warn(RuntimeWarning(msg))
+/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/runpy.py:127: RuntimeWarning: 'bowhead.train.train_cnn' found in sys.modules after import of package 'bowhead.train', but prior to execution of 'bowhead.train.train_cnn'; this may result in unpredictable behaviour
+  warn(RuntimeWarning(msg))
+/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/runpy.py:127: RuntimeWarning: 'bowhead.train.train_cnn' found in sys.modules after import of package 'bowhead.train', but prior to execution of 'bowhead.train.train_cnn'; this may result in unpredictable behaviour
+  warn(RuntimeWarning(msg))
+/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/runpy.py:127: RuntimeWarning: 'bowhead.train.train_cnn' found in sys.modules after import of package 'bowhead.train', but prior to execution of 'bowhead.train.train_cnn'; this may result in unpredictable behaviour
+  warn(RuntimeWarning(msg))
+epoch   0 | train_loss 0.3004 | val_auc 0.9671
+/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/runpy.py:127: RuntimeWarning: 'bowhead.train.train_cnn' found in sys.modules after import of package 'bowhead.train', but prior to execution of 'bowhead.train.train_cnn'; this may result in unpredictable behaviour
+  warn(RuntimeWarning(msg))
+/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/runpy.py:127: RuntimeWarning: 'bowhead.train.train_cnn' found in sys.modules after import of package 'bowhead.train', but prior to execution of 'bowhead.train.train_cnn'; this may result in unpredictable behaviour
+  warn(RuntimeWarning(msg))
+/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/runpy.py:127: RuntimeWarning: 'bowhead.train.train_cnn' found in sys.modules after import of package 'bowhead.train', but prior to execution of 'bowhead.train.train_cnn'; this may result in unpredictable behaviour
+  warn(RuntimeWarning(msg))
+/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/runpy.py:127: RuntimeWarning: 'bowhead.train.train_cnn' found in sys.modules after import of package 'bowhead.train', but prior to execution of 'bowhead.train.train_cnn'; this may result in unpredictable behaviour
+  warn(RuntimeWarning(msg))
+/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/runpy.py:127: RuntimeWarning: 'bowhead.train.train_cnn' found in sys.modules after import of package 'bowhead.train', but prior to execution of 'bowhead.train.train_cnn'; this may result in unpredictable behaviour
+  warn(RuntimeWarning(msg))
+/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/runpy.py:127: RuntimeWarning: 'bowhead.train.train_cnn' found in sys.modules after import of package 'bowhead.train', but prior to execution of 'bowhead.train.train_cnn'; this may result in unpredictable behaviour
+  warn(RuntimeWarning(msg))
+/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/runpy.py:127: RuntimeWarning: 'bowhead.train.train_cnn' found in sys.modules after import of package 'bowhead.train', but prior to execution of 'bowhead.train.train_cnn'; this may result in unpredictable behaviour
+  warn(RuntimeWarning(msg))
+/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/runpy.py:127: RuntimeWarning: 'bowhead.train.train_cnn' found in sys.modules after import of package 'bowhead.train', but prior to execution of 'bowhead.train.train_cnn'; this may result in unpredictable behaviour
+  warn(RuntimeWarning(msg))
+epoch   1 | train_loss 0.2352 | val_auc 0.9680
+/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/runpy.py:127: RuntimeWarning: 'bowhead.train.train_cnn' found in sys.modules after import of package 'bowhead.train', but prior to execution of 'bowhead.train.train_cnn'; this may result in unpredictable behaviour
+  warn(RuntimeWarning(msg))
+/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/runpy.py:127: RuntimeWarning: 'bowhead.train.train_cnn' found in sys.modules after import of package 'bowhead.train', but prior to execution of 'bowhead.train.train_cnn'; this may result in unpredictable behaviour
+  warn(RuntimeWarning(msg))
+/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/runpy.py:127: RuntimeWarning: 'bowhead.train.train_cnn' found in sys.modules after import of package 'bowhead.train', but prior to execution of 'bowhead.train.train_cnn'; this may result in unpredictable behaviour
+  warn(RuntimeWarning(msg))
+/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/runpy.py:127: RuntimeWarning: 'bowhead.train.train_cnn' found in sys.modules after import of package 'bowhead.train', but prior to execution of 'bowhead.train.train_cnn'; this may result in unpredictable behaviour
+  warn(RuntimeWarning(msg))
+/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/runpy.py:127: RuntimeWarning: 'bowhead.train.train_cnn' found in sys.modules after import of package 'bowhead.train', but prior to execution of 'bowhead.train.train_cnn'; this may result in unpredictable behaviour
+  warn(RuntimeWarning(msg))
+/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/runpy.py:127: RuntimeWarning: 'bowhead.train.train_cnn' found in sys.modules after import of package 'bowhead.train', but prior to execution of 'bowhead.train.train_cnn'; this may result in unpredictable behaviour
+  warn(RuntimeWarning(msg))
+/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/runpy.py:127: RuntimeWarning: 'bowhead.train.train_cnn' found in sys.modules after import of package 'bowhead.train', but prior to execution of 'bowhead.train.train_cnn'; this may result in unpredictable behaviour
+  warn(RuntimeWarning(msg))
+/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/runpy.py:127: RuntimeWarning: 'bowhead.train.train_cnn' found in sys.modules after import of package 'bowhead.train', but prior to execution of 'bowhead.train.train_cnn'; this may result in unpredictable behaviour
+  warn(RuntimeWarning(msg))
+epoch   2 | train_loss 0.2156 | val_auc 0.9705
+/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/runpy.py:127: RuntimeWarning: 'bowhead.train.train_cnn' found in sys.modules after import of package 'bowhead.train', but prior to execution of 'bowhead.train.train_cnn'; this may result in unpredictable behaviour
+  warn(RuntimeWarning(msg))
+/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/runpy.py:127: RuntimeWarning: 'bowhead.train.train_cnn' found in sys.modules after import of package 'bowhead.train', but prior to execution of 'bowhead.train.train_cnn'; this may result in unpredictable behaviour
+  warn(RuntimeWarning(msg))
+/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/runpy.py:127: RuntimeWarning: 'bowhead.train.train_cnn' found in sys.modules after import of package 'bowhead.train', but prior to execution of 'bowhead.train.train_cnn'; this may result in unpredictable behaviour
+  warn(RuntimeWarning(msg))
+/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/runpy.py:127: RuntimeWarning: 'bowhead.train.train_cnn' found in sys.modules after import of package 'bowhead.train', but prior to execution of 'bowhead.train.train_cnn'; this may result in unpredictable behaviour
+  warn(RuntimeWarning(msg))
+/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/runpy.py:127: RuntimeWarning: 'bowhead.train.train_cnn' found in sys.modules after import of package 'bowhead.train', but prior to execution of 'bowhead.train.train_cnn'; this may result in unpredictable behaviour
+  warn(RuntimeWarning(msg))
+/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/runpy.py:127: RuntimeWarning: 'bowhead.train.train_cnn' found in sys.modules after import of package 'bowhead.train', but prior to execution of 'bowhead.train.train_cnn'; this may result in unpredictable behaviour
+  warn(RuntimeWarning(msg))
+/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/runpy.py:127: RuntimeWarning: 'bowhead.train.train_cnn' found in sys.modules after import of package 'bowhead.train', but prior to execution of 'bowhead.train.train_cnn'; this may result in unpredictable behaviour
+  warn(RuntimeWarning(msg))
+/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/runpy.py:127: RuntimeWarning: 'bowhead.train.train_cnn' found in sys.modules after import of package 'bowhead.train', but prior to execution of 'bowhead.train.train_cnn'; this may result in unpredictable behaviour
+  warn(RuntimeWarning(msg))
+epoch   3 | train_loss 0.1924 | val_auc 0.9672
+/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/runpy.py:127: RuntimeWarning: 'bowhead.train.train_cnn' found in sys.modules after import of package 'bowhead.train', but prior to execution of 'bowhead.train.train_cnn'; this may result in unpredictable behaviour
+  warn(RuntimeWarning(msg))
+/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/runpy.py:127: RuntimeWarning: 'bowhead.train.train_cnn' found in sys.modules after import of package 'bowhead.train', but prior to execution of 'bowhead.train.train_cnn'; this may result in unpredictable behaviour
+  warn(RuntimeWarning(msg))
+/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/runpy.py:127: RuntimeWarning: 'bowhead.train.train_cnn' found in sys.modules after import of package 'bowhead.train', but prior to execution of 'bowhead.train.train_cnn'; this may result in unpredictable behaviour
+  warn(RuntimeWarning(msg))
+/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/runpy.py:127: RuntimeWarning: 'bowhead.train.train_cnn' found in sys.modules after import of package 'bowhead.train', but prior to execution of 'bowhead.train.train_cnn'; this may result in unpredictable behaviour
+  warn(RuntimeWarning(msg))
+/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/runpy.py:127: RuntimeWarning: 'bowhead.train.train_cnn' found in sys.modules after import of package 'bowhead.train', but prior to execution of 'bowhead.train.train_cnn'; this may result in unpredictable behaviour
+  warn(RuntimeWarning(msg))
+/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/runpy.py:127: RuntimeWarning: 'bowhead.train.train_cnn' found in sys.modules after import of package 'bowhead.train', but prior to execution of 'bowhead.train.train_cnn'; this may result in unpredictable behaviour
+  warn(RuntimeWarning(msg))
+/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/runpy.py:127: RuntimeWarning: 'bowhead.train.train_cnn' found in sys.modules after import of package 'bowhead.train', but prior to execution of 'bowhead.train.train_cnn'; this may result in unpredictable behaviour
+  warn(RuntimeWarning(msg))
+/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/runpy.py:127: RuntimeWarning: 'bowhead.train.train_cnn' found in sys.modules after import of package 'bowhead.train', but prior to execution of 'bowhead.train.train_cnn'; this may result in unpredictable behaviour
+  warn(RuntimeWarning(msg))
+epoch   4 | train_loss 0.1633 | val_auc 0.9632
+/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/runpy.py:127: RuntimeWarning: 'bowhead.train.train_cnn' found in sys.modules after import of package 'bowhead.train', but prior to execution of 'bowhead.train.train_cnn'; this may result in unpredictable behaviour
+  warn(RuntimeWarning(msg))
+/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/runpy.py:127: RuntimeWarning: 'bowhead.train.train_cnn' found in sys.modules after import of package 'bowhead.train', but prior to execution of 'bowhead.train.train_cnn'; this may result in unpredictable behaviour
+  warn(RuntimeWarning(msg))
+/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/runpy.py:127: RuntimeWarning: 'bowhead.train.train_cnn' found in sys.modules after import of package 'bowhead.train', but prior to execution of 'bowhead.train.train_cnn'; this may result in unpredictable behaviour
+  warn(RuntimeWarning(msg))
+/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/runpy.py:127: RuntimeWarning: 'bowhead.train.train_cnn' found in sys.modules after import of package 'bowhead.train', but prior to execution of 'bowhead.train.train_cnn'; this may result in unpredictable behaviour
+  warn(RuntimeWarning(msg))
+/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/runpy.py:127: RuntimeWarning: 'bowhead.train.train_cnn' found in sys.modules after import of package 'bowhead.train', but prior to execution of 'bowhead.train.train_cnn'; this may result in unpredictable behaviour
+  warn(RuntimeWarning(msg))
+/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/runpy.py:127: RuntimeWarning: 'bowhead.train.train_cnn' found in sys.modules after import of package 'bowhead.train', but prior to execution of 'bowhead.train.train_cnn'; this may result in unpredictable behaviour
+  warn(RuntimeWarning(msg))
+/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/runpy.py:127: RuntimeWarning: 'bowhead.train.train_cnn' found in sys.modules after import of package 'bowhead.train', but prior to execution of 'bowhead.train.train_cnn'; this may result in unpredictable behaviour
+  warn(RuntimeWarning(msg))
+/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/runpy.py:127: RuntimeWarning: 'bowhead.train.train_cnn' found in sys.modules after import of package 'bowhead.train', but prior to execution of 'bowhead.train.train_cnn'; this may result in unpredictable behaviour
+  warn(RuntimeWarning(msg))
+epoch   5 | train_loss 0.1307 | val_auc 0.9581
+/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/runpy.py:127: RuntimeWarning: 'bowhead.train.train_cnn' found in sys.modules after import of package 'bowhead.train', but prior to execution of 'bowhead.train.train_cnn'; this may result in unpredictable behaviour
+  warn(RuntimeWarning(msg))
+/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/runpy.py:127: RuntimeWarning: 'bowhead.train.train_cnn' found in sys.modules after import of package 'bowhead.train', but prior to execution of 'bowhead.train.train_cnn'; this may result in unpredictable behaviour
+  warn(RuntimeWarning(msg))
+/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/runpy.py:127: RuntimeWarning: 'bowhead.train.train_cnn' found in sys.modules after import of package 'bowhead.train', but prior to execution of 'bowhead.train.train_cnn'; this may result in unpredictable behaviour
+  warn(RuntimeWarning(msg))
+/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/runpy.py:127: RuntimeWarning: 'bowhead.train.train_cnn' found in sys.modules after import of package 'bowhead.train', but prior to execution of 'bowhead.train.train_cnn'; this may result in unpredictable behaviour
+  warn(RuntimeWarning(msg))
+/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/runpy.py:127: RuntimeWarning: 'bowhead.train.train_cnn' found in sys.modules after import of package 'bowhead.train', but prior to execution of 'bowhead.train.train_cnn'; this may result in unpredictable behaviour
+  warn(RuntimeWarning(msg))
+/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/runpy.py:127: RuntimeWarning: 'bowhead.train.train_cnn' found in sys.modules after import of package 'bowhead.train', but prior to execution of 'bowhead.train.train_cnn'; this may result in unpredictable behaviour
+  warn(RuntimeWarning(msg))
+/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/runpy.py:127: RuntimeWarning: 'bowhead.train.train_cnn' found in sys.modules after import of package 'bowhead.train', but prior to execution of 'bowhead.train.train_cnn'; this may result in unpredictable behaviour
+  warn(RuntimeWarning(msg))
+/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/runpy.py:127: RuntimeWarning: 'bowhead.train.train_cnn' found in sys.modules after import of package 'bowhead.train', but prior to execution of 'bowhead.train.train_cnn'; this may result in unpredictable behaviour
+  warn(RuntimeWarning(msg))
+epoch   6 | train_loss 0.1020 | val_auc 0.9554
+/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/runpy.py:127: RuntimeWarning: 'bowhead.train.train_cnn' found in sys.modules after import of package 'bowhead.train', but prior to execution of 'bowhead.train.train_cnn'; this may result in unpredictable behaviour
+  warn(RuntimeWarning(msg))
+/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/runpy.py:127: RuntimeWarning: 'bowhead.train.train_cnn' found in sys.modules after import of package 'bowhead.train', but prior to execution of 'bowhead.train.train_cnn'; this may result in unpredictable behaviour
+  warn(RuntimeWarning(msg))
+/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/runpy.py:127: RuntimeWarning: 'bowhead.train.train_cnn' found in sys.modules after import of package 'bowhead.train', but prior to execution of 'bowhead.train.train_cnn'; this may result in unpredictable behaviour
+  warn(RuntimeWarning(msg))
+/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/runpy.py:127: RuntimeWarning: 'bowhead.train.train_cnn' found in sys.modules after import of package 'bowhead.train', but prior to execution of 'bowhead.train.train_cnn'; this may result in unpredictable behaviour
+  warn(RuntimeWarning(msg))
+/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/runpy.py:127: RuntimeWarning: 'bowhead.train.train_cnn' found in sys.modules after import of package 'bowhead.train', but prior to execution of 'bowhead.train.train_cnn'; this may result in unpredictable behaviour
+  warn(RuntimeWarning(msg))
+/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/runpy.py:127: RuntimeWarning: 'bowhead.train.train_cnn' found in sys.modules after import of package 'bowhead.train', but prior to execution of 'bowhead.train.train_cnn'; this may result in unpredictable behaviour
+  warn(RuntimeWarning(msg))
+/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/runpy.py:127: RuntimeWarning: 'bowhead.train.train_cnn' found in sys.modules after import of package 'bowhead.train', but prior to execution of 'bowhead.train.train_cnn'; this may result in unpredictable behaviour
+  warn(RuntimeWarning(msg))
+/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/runpy.py:127: RuntimeWarning: 'bowhead.train.train_cnn' found in sys.modules after import of package 'bowhead.train', but prior to execution of 'bowhead.train.train_cnn'; this may result in unpredictable behaviour
+  warn(RuntimeWarning(msg))
+epoch   7 | train_loss 0.0808 | val_auc 0.9539
+/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/runpy.py:127: RuntimeWarning: 'bowhead.train.train_cnn' found in sys.modules after import of package 'bowhead.train', but prior to execution of 'bowhead.train.train_cnn'; this may result in unpredictable behaviour
+  warn(RuntimeWarning(msg))
+/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/runpy.py:127: RuntimeWarning: 'bowhead.train.train_cnn' found in sys.modules after import of package 'bowhead.train', but prior to execution of 'bowhead.train.train_cnn'; this may result in unpredictable behaviour
+  warn(RuntimeWarning(msg))
+/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/runpy.py:127: RuntimeWarning: 'bowhead.train.train_cnn' found in sys.modules after import of package 'bowhead.train', but prior to execution of 'bowhead.train.train_cnn'; this may result in unpredictable behaviour
+  warn(RuntimeWarning(msg))
+/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/runpy.py:127: RuntimeWarning: 'bowhead.train.train_cnn' found in sys.modules after import of package 'bowhead.train', but prior to execution of 'bowhead.train.train_cnn'; this may result in unpredictable behaviour
+  warn(RuntimeWarning(msg))
+/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/runpy.py:127: RuntimeWarning: 'bowhead.train.train_cnn' found in sys.modules after import of package 'bowhead.train', but prior to execution of 'bowhead.train.train_cnn'; this may result in unpredictable behaviour
+  warn(RuntimeWarning(msg))
+/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/runpy.py:127: RuntimeWarning: 'bowhead.train.train_cnn' found in sys.modules after import of package 'bowhead.train', but prior to execution of 'bowhead.train.train_cnn'; this may result in unpredictable behaviour
+  warn(RuntimeWarning(msg))
+/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/runpy.py:127: RuntimeWarning: 'bowhead.train.train_cnn' found in sys.modules after import of package 'bowhead.train', but prior to execution of 'bowhead.train.train_cnn'; this may result in unpredictable behaviour
+  warn(RuntimeWarning(msg))
+/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/runpy.py:127: RuntimeWarning: 'bowhead.train.train_cnn' found in sys.modules after import of package 'bowhead.train', but prior to execution of 'bowhead.train.train_cnn'; this may result in unpredictable behaviour
+  warn(RuntimeWarning(msg))
+epoch   8 | train_loss 0.0647 | val_auc 0.9538
+/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/runpy.py:127: RuntimeWarning: 'bowhead.train.train_cnn' found in sys.modules after import of package 'bowhead.train', but prior to execution of 'bowhead.train.train_cnn'; this may result in unpredictable behaviour
+  warn(RuntimeWarning(msg))
+/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/runpy.py:127: RuntimeWarning: 'bowhead.train.train_cnn' found in sys.modules after import of package 'bowhead.train', but prior to execution of 'bowhead.train.train_cnn'; this may result in unpredictable behaviour
+  warn(RuntimeWarning(msg))
+/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/runpy.py:127: RuntimeWarning: 'bowhead.train.train_cnn' found in sys.modules after import of package 'bowhead.train', but prior to execution of 'bowhead.train.train_cnn'; this may result in unpredictable behaviour
+  warn(RuntimeWarning(msg))
+/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/runpy.py:127: RuntimeWarning: 'bowhead.train.train_cnn' found in sys.modules after import of package 'bowhead.train', but prior to execution of 'bowhead.train.train_cnn'; this may result in unpredictable behaviour
+  warn(RuntimeWarning(msg))
+/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/runpy.py:127: RuntimeWarning: 'bowhead.train.train_cnn' found in sys.modules after import of package 'bowhead.train', but prior to execution of 'bowhead.train.train_cnn'; this may result in unpredictable behaviour
+  warn(RuntimeWarning(msg))
+/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/runpy.py:127: RuntimeWarning: 'bowhead.train.train_cnn' found in sys.modules after import of package 'bowhead.train', but prior to execution of 'bowhead.train.train_cnn'; this may result in unpredictable behaviour
+  warn(RuntimeWarning(msg))
+/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/runpy.py:127: RuntimeWarning: 'bowhead.train.train_cnn' found in sys.modules after import of package 'bowhead.train', but prior to execution of 'bowhead.train.train_cnn'; this may result in unpredictable behaviour
+  warn(RuntimeWarning(msg))
+/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/runpy.py:127: RuntimeWarning: 'bowhead.train.train_cnn' found in sys.modules after import of package 'bowhead.train', but prior to execution of 'bowhead.train.train_cnn'; this may result in unpredictable behaviour
+  warn(RuntimeWarning(msg))
+epoch   9 | train_loss 0.0537 | val_auc 0.9536
+/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/runpy.py:127: RuntimeWarning: 'bowhead.train.train_cnn' found in sys.modules after import of package 'bowhead.train', but prior to execution of 'bowhead.train.train_cnn'; this may result in unpredictable behaviour
+  warn(RuntimeWarning(msg))
+/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/runpy.py:127: RuntimeWarning: 'bowhead.train.train_cnn' found in sys.modules after import of package 'bowhead.train', but prior to execution of 'bowhead.train.train_cnn'; this may result in unpredictable behaviour
+  warn(RuntimeWarning(msg))
+/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/runpy.py:127: RuntimeWarning: 'bowhead.train.train_cnn' found in sys.modules after import of package 'bowhead.train', but prior to execution of 'bowhead.train.train_cnn'; this may result in unpredictable behaviour
+  warn(RuntimeWarning(msg))
+/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/runpy.py:127: RuntimeWarning: 'bowhead.train.train_cnn' found in sys.modules after import of package 'bowhead.train', but prior to execution of 'bowhead.train.train_cnn'; this may result in unpredictable behaviour
+  warn(RuntimeWarning(msg))
+/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/runpy.py:127: RuntimeWarning: 'bowhead.train.train_cnn' found in sys.modules after import of package 'bowhead.train', but prior to execution of 'bowhead.train.train_cnn'; this may result in unpredictable behaviour
+  warn(RuntimeWarning(msg))
+/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/runpy.py:127: RuntimeWarning: 'bowhead.train.train_cnn' found in sys.modules after import of package 'bowhead.train', but prior to execution of 'bowhead.train.train_cnn'; this may result in unpredictable behaviour
+  warn(RuntimeWarning(msg))
+/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/runpy.py:127: RuntimeWarning: 'bowhead.train.train_cnn' found in sys.modules after import of package 'bowhead.train', but prior to execution of 'bowhead.train.train_cnn'; this may result in unpredictable behaviour
+  warn(RuntimeWarning(msg))
+/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/runpy.py:127: RuntimeWarning: 'bowhead.train.train_cnn' found in sys.modules after import of package 'bowhead.train', but prior to execution of 'bowhead.train.train_cnn'; this may result in unpredictable behaviour
+  warn(RuntimeWarning(msg))
+epoch  10 | train_loss 0.0446 | val_auc 0.9512
+/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/runpy.py:127: RuntimeWarning: 'bowhead.train.train_cnn' found in sys.modules after import of package 'bowhead.train', but prior to execution of 'bowhead.train.train_cnn'; this may result in unpredictable behaviour
+  warn(RuntimeWarning(msg))
+/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/runpy.py:127: RuntimeWarning: 'bowhead.train.train_cnn' found in sys.modules after import of package 'bowhead.train', but prior to execution of 'bowhead.train.train_cnn'; this may result in unpredictable behaviour
+  warn(RuntimeWarning(msg))
+/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/runpy.py:127: RuntimeWarning: 'bowhead.train.train_cnn' found in sys.modules after import of package 'bowhead.train', but prior to execution of 'bowhead.train.train_cnn'; this may result in unpredictable behaviour
+  warn(RuntimeWarning(msg))
+/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/runpy.py:127: RuntimeWarning: 'bowhead.train.train_cnn' found in sys.modules after import of package 'bowhead.train', but prior to execution of 'bowhead.train.train_cnn'; this may result in unpredictable behaviour
+  warn(RuntimeWarning(msg))
+/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/runpy.py:127: RuntimeWarning: 'bowhead.train.train_cnn' found in sys.modules after import of package 'bowhead.train', but prior to execution of 'bowhead.train.train_cnn'; this may result in unpredictable behaviour
+  warn(RuntimeWarning(msg))
+/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/runpy.py:127: RuntimeWarning: 'bowhead.train.train_cnn' found in sys.modules after import of package 'bowhead.train', but prior to execution of 'bowhead.train.train_cnn'; this may result in unpredictable behaviour
+  warn(RuntimeWarning(msg))
+/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/runpy.py:127: RuntimeWarning: 'bowhead.train.train_cnn' found in sys.modules after import of package 'bowhead.train', but prior to execution of 'bowhead.train.train_cnn'; this may result in unpredictable behaviour
+  warn(RuntimeWarning(msg))
+/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/runpy.py:127: RuntimeWarning: 'bowhead.train.train_cnn' found in sys.modules after import of package 'bowhead.train', but prior to execution of 'bowhead.train.train_cnn'; this may result in unpredictable behaviour
+  warn(RuntimeWarning(msg))
+epoch  11 | train_loss 0.0395 | val_auc 0.9524
+/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/runpy.py:127: RuntimeWarning: 'bowhead.train.train_cnn' found in sys.modules after import of package 'bowhead.train', but prior to execution of 'bowhead.train.train_cnn'; this may result in unpredictable behaviour
+  warn(RuntimeWarning(msg))
+/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/runpy.py:127: RuntimeWarning: 'bowhead.train.train_cnn' found in sys.modules after import of package 'bowhead.train', but prior to execution of 'bowhead.train.train_cnn'; this may result in unpredictable behaviour
+  warn(RuntimeWarning(msg))
+/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/runpy.py:127: RuntimeWarning: 'bowhead.train.train_cnn' found in sys.modules after import of package 'bowhead.train', but prior to execution of 'bowhead.train.train_cnn'; this may result in unpredictable behaviour
+  warn(RuntimeWarning(msg))
+/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/runpy.py:127: RuntimeWarning: 'bowhead.train.train_cnn' found in sys.modules after import of package 'bowhead.train', but prior to execution of 'bowhead.train.train_cnn'; this may result in unpredictable behaviour
+  warn(RuntimeWarning(msg))
+/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/runpy.py:127: RuntimeWarning: 'bowhead.train.train_cnn' found in sys.modules after import of package 'bowhead.train', but prior to execution of 'bowhead.train.train_cnn'; this may result in unpredictable behaviour
+  warn(RuntimeWarning(msg))
+/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/runpy.py:127: RuntimeWarning: 'bowhead.train.train_cnn' found in sys.modules after import of package 'bowhead.train', but prior to execution of 'bowhead.train.train_cnn'; this may result in unpredictable behaviour
+  warn(RuntimeWarning(msg))
+/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/runpy.py:127: RuntimeWarning: 'bowhead.train.train_cnn' found in sys.modules after import of package 'bowhead.train', but prior to execution of 'bowhead.train.train_cnn'; this may result in unpredictable behaviour
+  warn(RuntimeWarning(msg))
+/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/runpy.py:127: RuntimeWarning: 'bowhead.train.train_cnn' found in sys.modules after import of package 'bowhead.train', but prior to execution of 'bowhead.train.train_cnn'; this may result in unpredictable behaviour
+  warn(RuntimeWarning(msg))
+epoch  12 | train_loss 0.0358 | val_auc 0.9484
+early stop at epoch 12 (best 0.9705 @ 2)
+
+Held-out test (realistic prevalence):
+pipeline                     ROC-AUC      AP   P@R0.70
+--------------------------------------------------------
+warmstart_alldata            0.956   0.774    0.715

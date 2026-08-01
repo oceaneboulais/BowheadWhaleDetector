@@ -1,0 +1,49 @@
+  Found (1): Unsupervised_database_Manual_100K_ADG_Y08101214_centered_16Apr2026.dir
+  Found (0): Unsupervised_database_Auto_100K_ADG_Y08101214_centered_16Apr2026.dir
+  Found (1): Unsupervised_database_Manual_100K_Y08101214_centered.dir
+  Found (0): Unsupervised_database_AutoWithAirguns_100K_Y08101214_centered.dir
+
+Scanning and deduplicating ...
+  Scanning Unsupervised_database_Manual_100K_ADG_Y08101214_centered_16Apr2026.dir ...
+    skipped 1 unmatched filename(s)
+    98,933 files → 98,933 unique (total so far: 98,933)
+  Scanning Unsupervised_database_Auto_100K_ADG_Y08101214_centered_16Apr2026.dir ...
+    skipped 1 unmatched filename(s)
+    100,723 files → 100,723 unique (total so far: 199,656)
+  Scanning Unsupervised_database_Manual_100K_Y08101214_centered.dir ...
+    skipped 1 unmatched filename(s)
+    99,845 files → 58,594 unique (total so far: 258,250)
+  Scanning Unsupervised_database_AutoWithAirguns_100K_Y08101214_centered.dir ...
+    skipped 1 unmatched filename(s)
+    99,886 files → 94,622 unique (total so far: 352,872)
+
+Total unique files: 352,872
+Image shape per sample: (121, 104)  gram=SNR_gram
+  loaded 20,000/352,872  (5246/s, ETA 1.1 min)
+  loaded 40,000/352,872  (5256/s, ETA 1.0 min)
+  loaded 60,000/352,872  (5065/s, ETA 1.0 min)
+  loaded 80,000/352,872  (3751/s, ETA 1.2 min)
+  loaded 100,000/352,872  (3220/s, ETA 1.3 min)
+  loaded 120,000/352,872  (2932/s, ETA 1.3 min)
+  loaded 140,000/352,872  (2757/s, ETA 1.3 min)
+  loaded 160,000/352,872  (2634/s, ETA 1.2 min)
+  loaded 180,000/352,872  (2554/s, ETA 1.1 min)
+  loaded 200,000/352,872  (2494/s, ETA 1.0 min)
+  loaded 220,000/352,872  (2435/s, ETA 0.9 min)
+  loaded 240,000/352,872  (2397/s, ETA 0.8 min)
+  loaded 260,000/352,872  (2372/s, ETA 0.7 min)
+  loaded 280,000/352,872  (2354/s, ETA 0.5 min)
+  loaded 300,000/352,872  (2336/s, ETA 0.4 min)
+  loaded 320,000/352,872  (2321/s, ETA 0.2 min)
+  loaded 340,000/352,872  (2311/s, ETA 0.1 min)
+
+Writing data/spectrograms_all_training.npz ...
+
+=== Dataset summary ===
+  file    : data/spectrograms_all_training.npz  (2.17 GB)
+  images  : (352872, 121, 104)  uint8
+  calls   : 157,527  (44.6%)
+  non-calls: 195,345
+  sites   : {np.str_('3'): np.int64(177228), np.str_('5'): np.int64(175644)}
+  years   : {np.str_('2008'): np.int64(102021), np.str_('2010'): np.int64(64380), np.str_('2012'): np.int64(103060), np.str_('2014'): np.int64(83411)}
+  date_site groups: 52

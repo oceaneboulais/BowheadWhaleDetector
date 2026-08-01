@@ -1,0 +1,89 @@
+Loading data/spectrograms_all_training.npz ...
+  (352872, 121, 104)  loaded in 6.8s
+  Split: train=296,924  val=26,929  test=29,019
+  AE params: 3,409,953  latent_dim=32  flat=24960
+/Users/oboulais/Public/Bowhead_DL_Project/venv_bowhead/lib/python3.9/site-packages/torch/utils/data/dataloader.py:684: UserWarning: 'pin_memory' argument is set as true but not supported on MPS now, then device pinned memory won't be used.
+  warnings.warn(warn_msg)
+  [*] epoch   1  train=0.00519  val=0.00310  lr=1.00e-03  no_improve=0
+  [*] epoch   2  train=0.00346  val=0.00298  lr=1.00e-03  no_improve=0
+  [*] epoch   3  train=0.00336  val=0.00294  lr=1.00e-03  no_improve=0
+  [*] epoch   4  train=0.00331  val=0.00290  lr=1.00e-03  no_improve=0
+  [*] epoch   5  train=0.00327  val=0.00288  lr=1.00e-03  no_improve=0
+  [*] epoch   6  train=0.00325  val=0.00288  lr=1.00e-03  no_improve=0
+  [*] epoch   7  train=0.00323  val=0.00286  lr=1.00e-03  no_improve=0
+  [ ] epoch   8  train=0.00322  val=0.00286  lr=1.00e-03  no_improve=1
+  [*] epoch   9  train=0.00320  val=0.00285  lr=1.00e-03  no_improve=0
+  [*] epoch  10  train=0.00320  val=0.00284  lr=1.00e-03  no_improve=0
+  [*] epoch  11  train=0.00318  val=0.00284  lr=1.00e-03  no_improve=0
+  [*] epoch  12  train=0.00318  val=0.00283  lr=1.00e-03  no_improve=0
+  [*] epoch  13  train=0.00317  val=0.00283  lr=1.00e-03  no_improve=0
+  [ ] epoch  14  train=0.00316  val=0.00283  lr=1.00e-03  no_improve=1
+  [*] epoch  15  train=0.00316  val=0.00283  lr=1.00e-03  no_improve=0
+  [*] epoch  16  train=0.00315  val=0.00282  lr=1.00e-03  no_improve=0
+  [*] epoch  17  train=0.00315  val=0.00282  lr=1.00e-03  no_improve=0
+  [*] epoch  18  train=0.00315  val=0.00282  lr=1.00e-03  no_improve=0
+  [*] epoch  19  train=0.00314  val=0.00282  lr=1.00e-03  no_improve=0
+  [ ] epoch  20  train=0.00314  val=0.00282  lr=1.00e-03  no_improve=1
+  [*] epoch  21  train=0.00314  val=0.00281  lr=1.00e-03  no_improve=0
+  [*] epoch  22  train=0.00313  val=0.00281  lr=1.00e-03  no_improve=0
+  [ ] epoch  23  train=0.00313  val=0.00282  lr=1.00e-03  no_improve=1
+  [*] epoch  24  train=0.00313  val=0.00281  lr=1.00e-03  no_improve=0
+  [ ] epoch  25  train=0.00313  val=0.00281  lr=1.00e-03  no_improve=1
+  [ ] epoch  26  train=0.00312  val=0.00281  lr=1.00e-03  no_improve=2
+  [ ] epoch  27  train=0.00312  val=0.00281  lr=1.00e-03  no_improve=3
+  [*] epoch  28  train=0.00312  val=0.00281  lr=1.00e-03  no_improve=0
+  [ ] epoch  29  train=0.00312  val=0.00281  lr=1.00e-03  no_improve=1
+  [ ] epoch  30  train=0.00311  val=0.00281  lr=1.00e-03  no_improve=2
+  [*] epoch  31  train=0.00311  val=0.00281  lr=1.00e-03  no_improve=0
+  [ ] epoch  32  train=0.00311  val=0.00281  lr=1.00e-03  no_improve=1
+  [ ] epoch  33  train=0.00311  val=0.00281  lr=1.00e-03  no_improve=2
+  [ ] epoch  34  train=0.00311  val=0.00281  lr=1.00e-03  no_improve=3
+  [*] epoch  35  train=0.00311  val=0.00281  lr=1.00e-03  no_improve=0
+  [ ] epoch  36  train=0.00311  val=0.00281  lr=1.00e-03  no_improve=1
+  [*] epoch  37  train=0.00310  val=0.00281  lr=1.00e-03  no_improve=0
+  [ ] epoch  38  train=0.00310  val=0.00281  lr=1.00e-03  no_improve=1
+  [ ] epoch  39  train=0.00310  val=0.00281  lr=1.00e-03  no_improve=2
+  [ ] epoch  40  train=0.00310  val=0.00281  lr=1.00e-03  no_improve=3
+  [ ] epoch  41  train=0.00310  val=0.00281  lr=1.00e-03  no_improve=4
+  [ ] epoch  42  train=0.00310  val=0.00281  lr=1.00e-03  no_improve=5
+  [ ] epoch  43  train=0.00310  val=0.00281  lr=5.00e-04  no_improve=6
+  [*] epoch  44  train=0.00308  val=0.00280  lr=5.00e-04  no_improve=0
+  [*] epoch  45  train=0.00308  val=0.00280  lr=5.00e-04  no_improve=0
+  [ ] epoch  46  train=0.00308  val=0.00280  lr=5.00e-04  no_improve=1
+  [ ] epoch  47  train=0.00308  val=0.00280  lr=5.00e-04  no_improve=2
+  [ ] epoch  48  train=0.00308  val=0.00280  lr=5.00e-04  no_improve=3
+  [ ] epoch  49  train=0.00308  val=0.00280  lr=5.00e-04  no_improve=4
+  [ ] epoch  50  train=0.00308  val=0.00280  lr=5.00e-04  no_improve=5
+  [ ] epoch  51  train=0.00308  val=0.00280  lr=2.50e-04  no_improve=6
+  [*] epoch  52  train=0.00307  val=0.00280  lr=2.50e-04  no_improve=0
+  [ ] epoch  53  train=0.00307  val=0.00280  lr=2.50e-04  no_improve=1
+  [*] epoch  54  train=0.00307  val=0.00280  lr=2.50e-04  no_improve=0
+  [ ] epoch  55  train=0.00307  val=0.00280  lr=2.50e-04  no_improve=1
+  [ ] epoch  56  train=0.00307  val=0.00280  lr=2.50e-04  no_improve=2
+  [ ] epoch  57  train=0.00307  val=0.00280  lr=2.50e-04  no_improve=3
+  [ ] epoch  58  train=0.00307  val=0.00280  lr=1.25e-04  no_improve=4
+  [*] epoch  59  train=0.00307  val=0.00280  lr=1.25e-04  no_improve=0
+  [ ] epoch  60  train=0.00306  val=0.00280  lr=1.25e-04  no_improve=1
+  [*] epoch  61  train=0.00306  val=0.00280  lr=1.25e-04  no_improve=0
+  [ ] epoch  62  train=0.00306  val=0.00280  lr=1.25e-04  no_improve=1
+  [ ] epoch  63  train=0.00306  val=0.00280  lr=1.25e-04  no_improve=2
+  [*] epoch  64  train=0.00306  val=0.00280  lr=1.25e-04  no_improve=0
+  [ ] epoch  65  train=0.00306  val=0.00280  lr=1.25e-04  no_improve=1
+  [ ] epoch  66  train=0.00306  val=0.00280  lr=1.25e-04  no_improve=2
+  [ ] epoch  67  train=0.00306  val=0.00280  lr=6.25e-05  no_improve=3
+  [ ] epoch  68  train=0.00306  val=0.00280  lr=6.25e-05  no_improve=4
+  [*] epoch  69  train=0.00306  val=0.00280  lr=6.25e-05  no_improve=0
+  [ ] epoch  70  train=0.00306  val=0.00280  lr=6.25e-05  no_improve=1
+  [ ] epoch  71  train=0.00306  val=0.00280  lr=6.25e-05  no_improve=2
+  [ ] epoch  72  train=0.00306  val=0.00280  lr=6.25e-05  no_improve=3
+  [ ] epoch  73  train=0.00306  val=0.00280  lr=3.13e-05  no_improve=4
+  [ ] epoch  74  train=0.00306  val=0.00280  lr=3.13e-05  no_improve=5
+  [ ] epoch  75  train=0.00306  val=0.00280  lr=3.13e-05  no_improve=6
+  [ ] epoch  76  train=0.00306  val=0.00280  lr=3.13e-05  no_improve=7
+  [ ] epoch  77  train=0.00306  val=0.00280  lr=3.13e-05  no_improve=8
+  [ ] epoch  78  train=0.00306  val=0.00280  lr=3.13e-05  no_improve=9
+  [ ] epoch  79  train=0.00306  val=0.00280  lr=1.56e-05  no_improve=10
+Early stop at epoch 79 (patience=10)
+
+Best checkpoint: runs/ae_full/autoencoder_clean.pt
+  best_epoch=1  best_val_loss=0.002800
