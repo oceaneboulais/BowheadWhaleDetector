@@ -31,6 +31,8 @@ from bowhead.data.splits import grouped_split, make_date_site_group
 from bowhead.models.custom_cnn import EncoderClassifier, load_pretrained_encoder
 from bowhead.scorers import CNNScorer
 from bowhead.eval.evaluate import evaluate_scorer, metrics_table
+from bowhead.train.augment import spec_augment, mixup_batch
+from bowhead.train.losses import FocalLoss
 
 
 def _build_groups(metadata: dict, group_col: str) -> np.ndarray:
@@ -64,6 +66,15 @@ def train_custom_cnn(cfg: TrainConfig) -> dict:
 
     # --- data + leakage-free split -------------------------------------- #
     images, labels, metadata = SpectrogramDataset.load_npz(cfg.data_path)
+
+    # Auto-detect channel count from the loaded array so 1-ch and 2-ch npz
+    # files work without any extra CLI flag.
+    auto_channels = images.shape[1] if images.ndim == 4 else 1
+    if auto_channels != cfg.in_channels:
+        print(f"Auto-detected in_channels={auto_channels} from data "
+              f"(config had {cfg.in_channels}); overriding.")
+        cfg.in_channels = auto_channels
+
     groups = _build_groups(metadata, cfg.group_col)
     split = grouped_split(
         labels, groups, val_frac=cfg.val_frac, test_frac=cfg.test_frac, seed=cfg.seed
@@ -74,8 +85,8 @@ def train_custom_cnn(cfg: TrainConfig) -> dict:
     train_ds = SpectrogramDataset(images, labels, split.train)
     val_ds = SpectrogramDataset(images, labels, split.val)
     train_dl = DataLoader(train_ds, batch_size=cfg.batch_size, shuffle=True,
-                          num_workers=4, drop_last=True)
-    val_dl = DataLoader(val_ds, batch_size=256, shuffle=False, num_workers=4)
+                          num_workers=0, drop_last=True)
+    val_dl = DataLoader(val_ds, batch_size=256, shuffle=False, num_workers=0)
 
     # --- model (+ optional warm-start) ---------------------------------- #
     model = EncoderClassifier(
@@ -99,9 +110,25 @@ def train_custom_cnn(cfg: TrainConfig) -> dict:
                                dtype=torch.float32, device=device)
     else:
         weights = None
-    criterion = nn.CrossEntropyLoss(weight=weights)
+
+    if cfg.use_focal_loss:
+        criterion = FocalLoss(
+            gamma=cfg.focal_gamma,
+            alpha=cfg.focal_alpha,
+            weight=weights,
+        )
+        print(f"Loss: FocalLoss(gamma={cfg.focal_gamma}, alpha={cfg.focal_alpha})")
+    else:
+        criterion = nn.CrossEntropyLoss(weight=weights)
+        print("Loss: CrossEntropyLoss")
     params = [p for p in model.parameters() if p.requires_grad]
     optimizer = torch.optim.Adam(params, lr=cfg.lr, weight_decay=cfg.weight_decay)
+
+    if cfg.use_spec_augment:
+        print(f"SpecAugment: F={cfg.spec_aug_F}, T={cfg.spec_aug_T}, "
+              f"n_freq={cfg.spec_aug_n_freq}, n_time={cfg.spec_aug_n_time}")
+    if cfg.use_mixup:
+        print(f"Mixup: alpha={cfg.mixup_alpha}")
 
     # --- training loop w/ early stopping on val AUC --------------------- #
     best_auc, best_epoch, since_improve = -1.0, -1, 0
@@ -110,6 +137,19 @@ def train_custom_cnn(cfg: TrainConfig) -> dict:
         running = 0.0
         for x, y in train_dl:
             x, y = x.to(device), y.to(device)
+            if cfg.use_spec_augment:
+                x = spec_augment(
+                    x,
+                    F=cfg.spec_aug_F,
+                    T=cfg.spec_aug_T,
+                    n_freq_masks=cfg.spec_aug_n_freq,
+                    n_time_masks=cfg.spec_aug_n_time,
+                )
+            if cfg.use_mixup:
+                x, y = mixup_batch(x, y, alpha=cfg.mixup_alpha)
+            elif cfg.use_focal_loss:
+                # FocalLoss handles int64 targets when no mixup
+                pass
             optimizer.zero_grad()
             loss = criterion(model(x), y)
             loss.backward()
@@ -185,6 +225,18 @@ def _parse_args() -> TrainConfig:
     p.add_argument("--device", default=TrainConfig.device)
     p.add_argument("--tag", default=TrainConfig.tag)
     p.add_argument("--seed", type=int, default=TrainConfig.seed)
+    # augmentation
+    p.add_argument("--spec-augment", dest="use_spec_augment", action="store_true")
+    p.add_argument("--spec-aug-F", type=int, default=TrainConfig.spec_aug_F)
+    p.add_argument("--spec-aug-T", type=int, default=TrainConfig.spec_aug_T)
+    p.add_argument("--spec-aug-n-freq", type=int, default=TrainConfig.spec_aug_n_freq)
+    p.add_argument("--spec-aug-n-time", type=int, default=TrainConfig.spec_aug_n_time)
+    p.add_argument("--mixup", dest="use_mixup", action="store_true")
+    p.add_argument("--mixup-alpha", type=float, default=TrainConfig.mixup_alpha)
+    # loss
+    p.add_argument("--focal-loss", dest="use_focal_loss", action="store_true")
+    p.add_argument("--focal-gamma", type=float, default=TrainConfig.focal_gamma)
+    p.add_argument("--focal-alpha", type=float, default=None)
     a = p.parse_args()
     return TrainConfig(**vars(a))
 

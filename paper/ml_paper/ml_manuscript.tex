@@ -1,0 +1,547 @@
+% !TEX program = tectonic
+%
+% NeurIPS-format companion paper: call-type probing and clustering study.
+%
+% This is the ML-community follow-up to the JASA acoustics paper
+% (../manuscript.tex), which established a binary call/non-call detector.
+% This paper targets funding-proposal Objective 2 (classifying calls into
+% morphological sub-types, including unsupervised subdivision of the
+% "complex call" catch-all category) as an open representation-learning /
+% weak-supervision problem, rather than assuming it is solved.
+%
+% Compile with:  tectonic ml_manuscript.tex
+% (or: pdflatex ml_manuscript && bibtex ml_manuscript && pdflatex x2)
+%
+% To submit anonymously to a venue, remove the "preprint" option below --
+% the style file automatically anonymizes authors and adds line numbers
+% in that mode. Use [final] for the camera-ready version.
+
+\documentclass{article}
+\usepackage[preprint,nonatbib]{neurips_2023}
+\usepackage[numbers]{natbib}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{hyperref}
+\usepackage{url}
+\usepackage{booktabs}
+\usepackage{amsfonts}
+\usepackage{microtype}
+\usepackage{graphicx}
+\usepackage{amsmath}
+
+\title{Do Off-the-Shelf Detector Embeddings Reveal Bowhead Whale Call
+Sub-Types? A Probing and Clustering Study on Weakly-Labeled Passive
+Acoustic Data}
+
+\author{%
+  Oc\'eane Boulais \\
+  % Affiliation \\
+  % \texttt{email@domain} \\
+  \And
+  Aaron M.\ Thode \\
+  Scripps Institution of Oceanography, University of California San Diego \\
+}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+Manual bioacoustic taxonomies frequently include a catch-all category for
+sounds that resist clean classification; for migrating bowhead whales
+(\emph{Balaena mysticetus}), roughly a third of manually annotated calls
+across seven morphological "Type" labels fall into categories described by
+human analysts as ambiguous or context-dependent. A companion acoustics
+paper establishes a convolutional detector that separates bowhead calls
+from other transient sounds with high accuracy (ROC-AUC $\approx$ 0.96 on
+a fully independent, 199,825-sample generalization test), but that
+detector is explicitly binary and does not model call sub-type structure.
+Here we ask two narrower questions about the representations available
+from that detector's development: (1) how much information about the
+seven manually annotated call sub-types is linearly decodable from
+embeddings trained only for reconstruction (a convolutional autoencoder)
+or for binary call/non-call detection (from-scratch and
+autoencoder-warm-started classifiers); and (2) whether unsupervised
+clustering of these same embeddings recovers the manual sub-type taxonomy
+without using any sub-type labels. We find that a linear probe recovers
+moderate sub-type signal (best macro one-vs-rest ROC-AUC 0.663, top-1
+accuracy 36.5\% against a 14.3\% random baseline over seven classes), and
+that embeddings retaining more reconstructive detail (the autoencoder and
+warm-started classifier) are noticeably more informative for sub-type
+identity than embeddings optimized purely for binary detection (scratch
+classifier: macro ROC-AUC 0.577). In contrast, standard unsupervised
+clustering (k-means, BIC-selected Gaussian mixtures) fails to recover the
+manual taxonomy in any embedding space we tested (adjusted Rand index
+$\leq$ 0.055 in every configuration), indicating that whatever call-type
+signal exists in these embeddings is not axis-aligned with simple cluster
+geometry. We argue this dissociation -- weak-to-moderate linearly
+decodable structure alongside a near-total failure of unsupervised
+clustering -- is itself the useful empirical finding: it shows that
+representations optimized for reconstruction or binary detection are an
+insufficient basis for the unsupervised call-type subdivision envisioned
+in prior work, and motivates representation-learning objectives (e.g.,
+contrastive or metric-learning pretraining) explicitly targeted at
+sub-type structure, which we outline as the next step in this research
+program.
+\end{abstract}
+
+\section{Introduction}
+\label{sec:intro}
+
+Between 2007 and 2014, 35 passive acoustic recorders (Directional Autonomous
+Seafloor Acoustic Recorders, DASARs) were deployed along a 280\,km stretch of
+the Alaskan North Slope to monitor the fall migration of the
+Bering--Chukchi--Beaufort bowhead whale population. Manual analysts
+annotated millions of detected calls with a time, frequency range, and one
+of seven morphological "Type" labels. A long-standing observation in this
+literature, reflected directly in the manual annotation handbook used to
+build this dataset, is that a substantial fraction of calls resist clean
+categorization into simple frequency-modulated archetypes (up-calls,
+down-calls, undulations) and are instead placed into broader,
+harder-to-define categories describing mixed frequency/amplitude
+modulation with broadband energy. Whether this catch-all grouping reflects
+a single underlying vocalization type or several distinct call types that
+happen to be difficult for a human analyst to separate by eye has been an
+open question for at least two decades, and is precisely the question a
+purely supervised classifier -- which can only reproduce the labels it is
+given -- cannot answer on its own.
+
+A companion acoustics paper describes a two-stage detector for this
+dataset: a convolutional autoencoder that compresses single-channel SNR
+spectrograms into a 32-dimensional latent space, and a supervised
+classifier (trained either from random initialization, or warm-started
+from the autoencoder's encoder weights) that distinguishes bowhead calls
+from other transient sounds, including seismic airgun pulses, with
+ROC-AUC $\approx$ 0.96 on a fully independent held-out evaluation set. That
+detector is deliberately binary, and treats all seven manually annotated
+call sub-types identically during training and evaluation. This raises a
+natural follow-up question that the detector itself was not designed to
+answer: \emph{do the representations produced along the way to building
+that binary detector already carry usable information about call
+sub-type, and if so, is that information organized in a way that
+unsupervised clustering could exploit to automatically discover or refine
+sub-type structure without additional manual annotation?}
+
+We treat this as an empirical probing question rather than assume an
+answer. Concretely, we study three 32-dimensional embedding spaces that
+already existed as artifacts of building the binary detector -- a purely
+reconstructive autoencoder embedding, a from-scratch binary-detection
+embedding, and an autoencoder-warm-started binary-detection embedding --
+and ask (RQ1) how much of the manually annotated seven-way call-type
+structure is linearly decodable from each, and (RQ2) whether standard
+unsupervised clustering methods (k-means, Gaussian mixtures with
+BIC-selected component count) recover that same seven-way structure
+without being given any sub-type labels. Our contribution is not a new
+architecture, but a carefully controlled empirical answer, using a
+leakage-free evaluation protocol inherited directly from the companion
+detector paper, to a question that is foundational to any future attempt
+at unsupervised or weakly-supervised bowhead call-type discovery: representations trained for
+reconstruction or binary detection are demonstrably \emph{not}
+sufficient, on their own, for that goal, which motivates the
+representation-learning objectives we outline as future work in
+Section~\ref{sec:discussion}.
+
+\section{Related work}
+\label{sec:related}
+
+\textbf{Bioacoustic deep learning.} Convolutional and, increasingly,
+transformer-based architectures have substantially improved automated
+detection of marine mammal and avian vocalizations over classical
+spectrogram-correlation and hand-engineered feature approaches
+\citep{shiu2020deep, allen2021convolutional}. Prior bowhead-specific work
+used hand-crafted features and a shallow three-layer network to flag calls
+without attempting sub-type classification \citep{thode2012automated}. Our
+companion detector paper replaces this with a modern convolutional
+detector, but likewise stops short of sub-type classification, which is
+the gap this paper addresses.
+
+\textbf{Representation learning for bioacoustics.} Convolutional
+autoencoders and related unsupervised encoders have been used to compress
+bioacoustic spectrograms into low-dimensional embeddings for downstream
+clustering and visualization \citep{ozanich2021deep, hinton2006reducing}.
+Most such studies, however, evaluate reconstruction quality or
+binary/coarse detection performance rather than directly asking whether
+the resulting embedding geometry supports \emph{unsupervised} recovery of
+a pre-existing fine-grained taxonomy, which is the specific question we
+address here.
+
+\textbf{Weakly-labeled and open-set classification.} Because the "complex
+call" category in this dataset was defined by human analysts as a
+catch-all for signals that did not fit cleaner categories, it is best
+understood as a weak or noisy label rather than a well-defined class. This
+connects our study to the broader literature on learning under label
+noise and open-set/novel-class discovery, where a central question is
+whether representations trained for a related but distinct task (here,
+binary detection) transfer usefully to separate finer-grained or entirely
+novel classes not explicitly supervised during training.
+
+\section{Data and problem setup}
+\label{sec:data}
+
+We reuse, without modification, the leakage-controlled 100{,}000-sample
+dataset and grouped date$\times$site train/test split described in the
+companion detector paper: 50{,}000 manually verified bowhead calls (Types
+1--7) and 50{,}000 auto-detected non-call transients (Type 0), drawn from
+DASAR sites 3 and 5 and DASARs A, D, and G. Every image is a 121$\times$104
+single-channel SNR spectrogram spanning 3~seconds and 25--500~Hz, centered
+on the time of peak local power spectral density (see companion paper for
+full preprocessing details). Splitting is grouped by the
+date$\times$site key used to record each detection, so that all images
+from a given site on a given day fall entirely within one partition --
+the same leakage-safety invariant used throughout the companion paper --
+yielding 91{,}920 training images (43 groups) and 8{,}080 held-out test
+images (8 groups), with zero group overlap between partitions.
+
+For the present study we restrict attention to the 50{,}000 manually
+verified calls, which carry one of seven Type labels (Table~\ref{tab:counts}).
+We treat these Type labels exactly as delivered by the original
+manual-analysis pipeline: as opaque integer categories, with no semantic
+mapping (e.g. "up-call," "complex call") reconstructed or assumed, since no
+such mapping exists in the dataset artifacts available to us. This is a
+deliberate choice: any claim about which Types correspond to "simple" or
+"complex" calls in the sense used by the original annotation handbook would
+require information we do not have, so we evaluate all seven Types
+identically and let the data speak for itself. Restricting to the grouped
+split above yields 47{,}400 training and 2{,}600 test calls with Type
+labels (Table~\ref{tab:counts}); Type 6 is the rarest (1{,}553 examples
+total) and Type 1 the most common (14{,}693 examples total), a roughly
+9.5:1 imbalance ratio that we account for using class-balanced probe
+training (Section~\ref{sec:methods}).
+
+\begin{table}[t]
+  \centering
+  \caption{Manually annotated call-type counts in the grouped train/test
+  split used for the probing and clustering study (identical split
+  convention as the companion detector paper).}
+  \label{tab:counts}
+  \begin{tabular}{lccccccc|c}
+    \toprule
+     & Type 1 & Type 2 & Type 3 & Type 4 & Type 5 & Type 6 & Type 7 & Total \\
+    \midrule
+    Train & 13{,}951 & 10{,}049 & 7{,}576 & 4{,}548 & 3{,}292 & 1{,}456 & 6{,}528 & 47{,}400 \\
+    Test  &    742 &    701 &   392 &   215 &   165 &    97 &   288 &  2{,}600 \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\section{Methods}
+\label{sec:methods}
+
+\textbf{Embedding spaces.} We evaluate three 32-dimensional embedding
+spaces, all already produced during the construction of the companion
+binary detector, with no additional training performed for this study:
+\begin{itemize}
+  \item \textbf{Autoencoder (AE)}: the encoder trunk of the convolutional
+  autoencoder, trained purely to minimize pixel-wise reconstruction error,
+  with no access to any call/non-call or Type label during training.
+  \item \textbf{CNN (scratch)}: the encoder trunk of the binary
+  call/non-call classifier, trained end-to-end from random initialization
+  using only the binary label.
+  \item \textbf{CNN (warm-start)}: the same binary classifier architecture,
+  but with the encoder trunk initialized from the trained autoencoder and
+  then fine-tuned end-to-end on the binary label.
+\end{itemize}
+All three share an identical architecture (three Conv+BatchNorm+ReLU+MaxPool
+blocks, FC-64$\to$FC-32 bottleneck), differing only in what objective (if
+any) supervised their training, isolating the effect of training objective
+on call-type informativeness while holding architecture and input data
+fixed.
+
+\textbf{Linear probing (RQ1).} For each embedding space, we extract
+32-dimensional embeddings for every manually-verified call in the grouped
+train/test split (Section~\ref{sec:data}) and fit a
+class-balanced, multinomial logistic-regression probe (StandardScaler
+$\to$ balanced multinomial logistic regression, $L_2$ regularization
+$C=1$) on the training embeddings and Type labels, following standard
+frozen-embedding probing methodology. We report one-vs-rest ROC-AUC
+per Type, macro-averaged ROC-AUC across the seven types, and top-1
+accuracy, all computed on the held-out grouped test partition. A
+macro ROC-AUC of 0.5 and a top-1 accuracy of $1/7 \approx 14.3\%$
+correspond to chance performance under this seven-way task.
+
+\textbf{Unsupervised clustering (RQ2).} For each embedding space, we
+standard-scale the pooled train+test call embeddings (50{,}000 points) and
+apply two clustering algorithms: (i) k-means with $k=7$, matching the
+number of manually annotated Types, and (ii) a Gaussian mixture model
+with the number of components selected by Bayesian Information Criterion
+(BIC) over $k \in \{2,4,6,7,8,10,12,16\}$, allowing the data to select a
+different granularity than the manual taxonomy if warranted. We score
+cluster quality using the silhouette coefficient (an unsupervised,
+label-free measure of cluster separation) and, critically, score
+\emph{agreement with the manual Type labels} using the adjusted Rand
+index (ARI) and normalized mutual information (NMI) -- two standard
+clustering-agreement metrics that are 0 in expectation for a random
+partition and 1 for a perfect match to the reference labels.
+
+\section{Results}
+\label{sec:results}
+
+\subsection{RQ1: call-type information is linearly decodable, but modest}
+
+Table~\ref{tab:probe} reports the linear-probe results for all three
+embedding spaces. All three exceed the chance baseline (macro ROC-AUC
+0.5, top-1 accuracy 14.3\%) by a wide margin, confirming that
+call-sub-type information is present and linearly accessible in these
+embeddings despite none of them being trained with sub-type supervision.
+However, the gap between embedding spaces is substantial and
+systematic: the autoencoder and warm-started embeddings (macro ROC-AUC
+0.659 and 0.663) are both markedly more informative for call sub-type
+than the from-scratch binary-detection embedding (macro ROC-AUC 0.577).
+This pattern holds for six of seven individual Types
+(Table~\ref{tab:probe}), and is consistent with the interpretation that
+an embedding optimized purely to separate "call" from "non-call" discards
+within-call visual detail that is not needed for that binary decision, but
+that a reconstructive or partially-reconstructive objective retains.
+Types 1, 2, and 7 are the most separable across all three embeddings
+(per-type ROC-AUC 0.72--0.79 for AE/warm-start); Types 3, 5, and 6 are
+consistently the hardest to separate (ROC-AUC 0.52--0.60), independent of
+which embedding is used.
+
+\begin{table}[t]
+  \centering
+  \caption{Seven-way call-type linear-probe results (macro one-vs-rest
+  ROC-AUC, top-1 accuracy, and per-Type ROC-AUC) on the held-out grouped
+  test split (chance: macro ROC-AUC 0.5, top-1 accuracy 14.3\%).}
+  \label{tab:probe}
+  \small
+  \setlength{\tabcolsep}{4pt}
+  \begin{tabular}{lccccccccc}
+    \toprule
+    Embedding & Macro & Top-1 & \multicolumn{7}{c}{Per-type ROC-AUC} \\
+    & ROC-AUC & Acc.\ & T1 & T2 & T3 & T4 & T5 & T6 & T7 \\
+    \midrule
+    Autoencoder    & 0.659 & 36.1\% & 0.735 & 0.722 & 0.564 & 0.619 & 0.596 & 0.584 & 0.794 \\
+    CNN (scratch)      & 0.577 & 15.9\% & 0.606 & 0.573 & 0.542 & 0.570 & 0.520 & 0.583 & 0.645 \\
+    CNN (warm-start)   & \textbf{0.663} & \textbf{36.5\%} & 0.744 & 0.754 & 0.580 & 0.623 & 0.579 & 0.604 & 0.754 \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\subsection{RQ2: unsupervised clustering fails to recover the manual taxonomy}
+
+Table~\ref{tab:cluster} reports clustering results for all three
+embeddings. In every configuration -- both algorithms, all three embedding
+spaces -- agreement with the manual seven-way Type labels is close to
+zero (ARI $\leq 0.055$, NMI $\leq 0.055$), far below what would indicate
+even a loose correspondence between discovered clusters and the manual
+taxonomy. This holds despite k-means finding geometrically well-separated
+clusters in some embeddings by its own internal criterion (silhouette
+0.306 for the scratch-CNN embedding) -- meaning the clusters that do
+exist in these embedding spaces are organized around structure other than
+manually annotated call type (plausibly SNR, site, DASAR channel, or
+signal duration, none of which were controlled for in this analysis). The
+BIC criterion for the Gaussian mixture model selected a substantially
+larger number of components (12--16) than the seven manually annotated
+types in every embedding, and even at that finer granularity, agreement
+with the manual Types did not improve materially.
+
+\begin{table}[t]
+  \centering
+  \caption{Unsupervised clustering agreement with the manual seven-Type
+  taxonomy, pooled across the full 50{,}000 manually-verified calls.
+  Silhouette is a label-free internal cluster-quality score; ARI and NMI
+  measure agreement with the manual Type labels (0 = chance, 1 = perfect).}
+  \label{tab:cluster}
+  \begin{tabular}{llcccc}
+    \toprule
+    Embedding & Method & $k$ & Silhouette & ARI & NMI \\
+    \midrule
+    Autoencoder     & k-means      & 7  & 0.102  & 0.015 & 0.031 \\
+    Autoencoder     & GMM (BIC)    & 16 & $-$0.020 & 0.031 & 0.055 \\
+    CNN (scratch)   & k-means      & 7  & 0.306  & 0.008 & 0.016 \\
+    CNN (scratch)   & GMM (BIC)    & 12 & $-$0.136 & 0.010 & 0.020 \\
+    CNN (warm-start)& k-means      & 7  & 0.044  & 0.016 & 0.024 \\
+    CNN (warm-start)& GMM (BIC)    & 16 & $-$0.088 & 0.012 & 0.022 \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\section{Discussion and limitations}
+\label{sec:discussion}
+
+Taken together, these results paint a consistent picture: call-type
+information exists in all three embedding spaces at a level well above
+chance (RQ1), but is not organized in a way that any of the unsupervised
+clustering methods we tested can recover (RQ2). We consider this
+dissociation -- rather than either result in isolation -- to be the main
+finding of this study. It shows that a decodable linear direction for
+call-type is not sufficient for an unsupervised clustering algorithm to
+discover it unprompted; the relevant information may be encoded in a
+low-variance or non-axis-aligned subspace that reconstruction- or
+detection-oriented objectives have no incentive to make geometrically
+salient. Concretely, this means the unsupervised subdivision of the
+"complex call" catch-all category envisioned in prior work
+cannot be accomplished by naively clustering an embedding trained for a
+different objective (reconstruction or binary detection); it requires an
+embedding explicitly optimized to make call-type structure clusterable,
+motivating the contrastive- or metric-learning-based objectives we outline
+below.
+
+We also note a second consistent pattern that is scientifically
+interesting in its own right: the from-scratch binary-detection embedding
+is uniformly worse at call-type discrimination than either the
+autoencoder or the warm-started embedding, despite performing marginally
+\emph{better} than the warm-started model at the binary detection task
+itself (per the companion detector paper). This suggests that optimizing
+purely for call/non-call separability actively discards information that
+is useful for finer-grained discrimination -- a representation-learning
+trade-off that, to our knowledge, has not been explicitly quantified for
+this dataset before, and that has a direct practical implication: a
+detector optimized purely for binary recall should not be assumed to
+produce embeddings suitable for downstream sub-type analysis, even though
+it is architecturally identical to one that is.
+
+\textbf{Limitations.} This study has several limitations that qualify how
+strongly its conclusions should be read. First, we treat the manually
+annotated seven-way Type taxonomy as ground truth for the ARI/NMI
+clustering-agreement metrics, but the taxonomy's own documentation
+describes at least one of its categories as an explicit catch-all for
+signals that resisted clean human categorization; a low ARI could
+therefore reflect either an uninformative embedding or a manual taxonomy
+that does not itself correspond to a naturally clusterable structure --
+our data cannot distinguish between these two explanations, and doing so
+is an important direction for future work (e.g., via targeted
+expert review of specific discovered clusters). Second, we evaluate only
+two clustering families (k-means, Gaussian mixtures) at a single random
+seed each; more flexible density-based methods (e.g., HDBSCAN) or
+repeated-seed stability analysis might recover structure that these two
+methods miss, and we plan to report this in a full version of this study.
+Third, our linear probe is a single, comparatively simple classifier
+(multinomial logistic regression); a nonlinear probe could reveal
+additional decodable structure not visible to a linear decision boundary,
+which would strengthen rather than weaken the RQ1/RQ2 dissociation
+reported here. Fourth, none of the three embeddings evaluated here were
+trained with any objective that specifically targets sub-type structure
+(e.g., contrastive learning with call-preserving augmentations, or
+metric learning against partial sub-type supervision); this is precisely
+the gap our findings motivate addressing next.
+
+\textbf{Future work.} The most direct next step is to replace the purely
+reconstructive or purely binary-discriminative pretraining objectives
+studied here with a representation-learning objective explicitly designed
+to make call-type structure separable -- for instance, a contrastive
+objective using label-preserving spectrogram augmentations (time-shift,
+additive noise at controlled SNR, frequency-axis jitter) to pull same-call
+views together and push different-call views apart, or a semi-supervised
+metric-learning approach that uses a small fraction of Type-labeled calls
+to shape the embedding geometry before applying unsupervised clustering to
+the remainder. Any such method should be validated not only by
+ARI/NMI against the existing manual taxonomy, but by a human-expert review
+of discovered clusters that do \emph{not} match the manual taxonomy, since
+-- as noted above -- the manual taxonomy's own "complex call" category was
+defined as a catch-all rather than a settled ground truth, and a genuinely
+useful method might legitimately propose a different partition than the
+one used here for evaluation. Beyond call-type structure, the original
+research program motivating this dataset also identified single-spectrogram
+range estimation and multi-sensor context fusion (combining detections
+across co-located DASAR channels, and explicitly modeling seismic airgun
+temporal periodicity to reduce false alarms) as further open objectives;
+neither is addressed by the present study or its companion detector paper,
+and both remain open targets for future work building on the
+representations studied here.
+
+\section*{Broader impact}
+Automated tools of this kind are intended to help researchers process
+existing, currently under-analyzed decades-scale passive acoustic
+archives more efficiently, in support of monitoring bowhead whale
+distribution and behavior amid climate change and increasing human
+activity in the Arctic -- a topic of direct importance to Alaska Native
+communities who rely on the bowhead subsistence hunt. We are not aware of
+a plausible negative-use pathway for this specific probing/clustering
+study, which does not itself produce a deployable detector or classifier.
+
+\begin{ack}
+This research was supported by the North Pacific Research Board. We thank
+Greeneridge Sciences, Inc.\ for the manual call annotations underlying
+this dataset.
+\end{ack}
+
+\begin{thebibliography}{10}
+
+\bibitem{thode2012automated}
+A.~M. Thode et al.
+\newblock An automated approach for identifying and classifying bowhead whale calls (working citation; verify full bibliographic details before submission -- shared with the companion JASA manuscript).
+
+\bibitem{shiu2020deep}
+Y.~Shiu, K.~J. Palmer, M.~A. Roch, E.~Fleishman, X.~Liu, E.-M. Nosal,
+T.~Helble, D.~Cholewiak, D.~Gillespie, and H.~Klinck.
+\newblock Deep neural networks for automated detection of marine mammal
+species.
+\newblock \emph{Scientific Reports}, 10:607, 2020.
+
+\bibitem{allen2021convolutional}
+A.~N. Allen, M.~Harvey, L.~Rideout, D.~Nason, S.~Perry, and A.~D. Jarvis.
+\newblock A convolutional neural network for automated detection of
+humpback whale song in a diverse, long-term passive acoustic dataset.
+\newblock \emph{Frontiers in Marine Science}, 8, 2021.
+
+\bibitem{ozanich2021deep}
+E.~Ozanich, A.~Thode, P.~Gerstoft, L.~A. Freeman, and S.~Freeman.
+\newblock Deep embedded clustering of coral reef bioacoustics.
+\newblock \emph{Journal of the Acoustical Society of America},
+149(4):2587--2601, 2021.
+
+\bibitem{hinton2006reducing}
+G.~E. Hinton and R.~R. Salakhutdinov.
+\newblock Reducing the dimensionality of data with neural networks.
+\newblock \emph{Science}, 313(5786):504--507, 2006.
+
+\bibitem{paszke2019pytorch}
+A.~Paszke, S.~Gross, F.~Massa, A.~Lerer, J.~Bradbury, G.~Chanan,
+T.~Killeen, Z.~Lin, N.~Gimelshein, L.~Antiga, et al.
+\newblock PyTorch: An imperative style, high-performance deep learning
+library.
+\newblock In \emph{Advances in Neural Information Processing Systems 32},
+2019.
+
+\bibitem{kingma2015adam}
+D.~P. Kingma and J.~Ba.
+\newblock Adam: A method for stochastic optimization.
+\newblock In \emph{International Conference on Learning Representations},
+2015.
+
+\bibitem{ioffe2015batch}
+S.~Ioffe and C.~Szegedy.
+\newblock Batch normalization: Accelerating deep network training by
+reducing internal covariate shift.
+\newblock In \emph{International Conference on Machine Learning}, 2015.
+
+\bibitem{nair2010rectified}
+V.~Nair and G.~E. Hinton.
+\newblock Rectified linear units improve restricted Boltzmann machines.
+\newblock In \emph{International Conference on Machine Learning}, 2010.
+
+\bibitem{lecun1998gradient}
+Y.~LeCun, L.~Bottou, Y.~Bengio, and P.~Haffner.
+\newblock Gradient-based learning applied to document recognition.
+\newblock \emph{Proceedings of the IEEE}, 86(11):2278--2324, 1998.
+
+\bibitem{mcinnes2018umap}
+L.~McInnes, J.~Healy, and J.~Melville.
+\newblock UMAP: Uniform manifold approximation and projection for
+dimension reduction.
+\newblock \emph{arXiv:1802.03426}, 2018.
+
+\bibitem{pedregosa2011scikit}
+F.~Pedregosa, G.~Varoquaux, A.~Gramfort, V.~Michel, B.~Thirion,
+O.~Grisel, M.~Blondel, P.~Prettenhofer, R.~Weiss, V.~Dubourg, et al.
+\newblock Scikit-learn: Machine learning in Python.
+\newblock \emph{Journal of Machine Learning Research}, 12:2825--2830,
+2011.
+
+\bibitem{rousseeuw1987silhouettes}
+P.~J. Rousseeuw.
+\newblock Silhouettes: A graphical aid to the interpretation and
+validation of cluster analysis.
+\newblock \emph{Journal of Computational and Applied Mathematics},
+20:53--65, 1987.
+
+\bibitem{hubert1985comparing}
+L.~Hubert and P.~Arabie.
+\newblock Comparing partitions.
+\newblock \emph{Journal of Classification}, 2(1):193--218, 1985.
+
+\end{thebibliography}
+
+\end{document}

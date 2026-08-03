@@ -19,9 +19,22 @@ venv*/
 
 # --- docs: keep locally but do not publish ---
 docs/literature_review_dl.html
+/docs/
+
+# --- generated reports/figures ---
+/results/
 
 # --- editor / OS / local agent settings ---
 .DS_Store
 .claude/
 .vscode/
 .idea/
+
+# Eval_v2 review artifacts (local, large)
+/data/eval_v2_review_2026-07-27/full/
+/data/eval_v2_review_2026-07-27/thumbnails/
+/data/eval_v2_review_2026-07-27/*.npz
+
+# MATLAB latent exports for eval review (local, large)
+/data/eval_v2_review_2026-07-27/matlab_latents/
+/data/matlab_latents/
