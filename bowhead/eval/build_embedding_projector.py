@@ -8,6 +8,8 @@ spectrograms, writes:
   2. Pre-computed UMAP 2-D coordinates written as ``add_image`` scatter PNGs so
      they appear in the Images tab even without an embedding projector plugin.
   3. Per-class mean spectrogram images in the Images tab.
+  4. Optional MATLAB .mat latent exports suitable for import into MATLAB's
+     Deep Learning GUI and workspace.
 
 Run:
     PYTHONPATH=. /usr/local/bin/python3.8 -m bowhead.eval.build_embedding_projector \
@@ -15,6 +17,7 @@ Run:
         --scratch  runs/scratch_demo/best.pt \
         --warmstart runs/warmstart_demo/best.pt \
         --out runs \
+        --matlab-out-dir runs/matlab_latents \
         --n 2000
 """
 
@@ -25,6 +28,7 @@ from pathlib import Path
 
 import numpy as np
 import torch
+from scipy.io import savemat
 from torch.utils.tensorboard import SummaryWriter
 from PIL import Image
 
@@ -107,6 +111,35 @@ def _make_sprite(images: np.ndarray) -> np.ndarray:
     return sprite
 
 
+def _to_matlab_cell_str(values: np.ndarray | list[str]) -> np.ndarray:
+    """Return an object array of strings for MATLAB cell array import."""
+    return np.array([str(v) for v in values], dtype=object)
+
+
+def _save_matlab_latents(
+    out_path: Path,
+    embeddings: np.ndarray,
+    labels: np.ndarray,
+    label_names: np.ndarray,
+    call_types: np.ndarray,
+    sites: np.ndarray,
+    dasars: np.ndarray,
+    sample_ids: np.ndarray | None = None,
+) -> None:
+    """Save latent embeddings and metadata to a .mat file importable by MATLAB."""
+    data = {
+        "embeddings": embeddings.astype(np.float32),
+        "labels": labels.reshape(-1, 1).astype(np.uint8),
+        "label_names": _to_matlab_cell_str(label_names),
+        "call_type": _to_matlab_cell_str(call_types),
+        "site": _to_matlab_cell_str(sites),
+        "dasar": _to_matlab_cell_str(dasars),
+    }
+    if sample_ids is not None:
+        data["sample_id"] = _to_matlab_cell_str(sample_ids)
+    savemat(str(out_path), data, do_compression=True)
+
+
 def _umap_scatter_png(
     embeddings: np.ndarray,
     labels: np.ndarray,
@@ -174,6 +207,7 @@ def build(
     scratch_ckpt: str | None,
     warmstart_ckpt: str | None,
     out_dir: str,
+    matlab_out_dir: str | None,
     n: int,
     device: str,
 ) -> None:
@@ -226,11 +260,30 @@ def build(
     if warmstart_ckpt:
         runs.append(("warmstart_demo", warmstart_ckpt))
 
+    matlab_out_dir_path = Path(matlab_out_dir) if matlab_out_dir else None
+    if matlab_out_dir_path is not None:
+        matlab_out_dir_path.mkdir(parents=True, exist_ok=True)
+
     for run_name, ckpt_path in runs:
         print(f"\n── {run_name} ──")
         model = _load_model(ckpt_path, device)
         embeddings = _extract_embeddings(model, images, device=device)
         print(f"  embeddings: {embeddings.shape}")
+
+        if matlab_out_dir_path is not None:
+            matlab_out_path = matlab_out_dir_path / f"{run_name}_latents.mat"
+            sample_ids = np.array([f"{sites[i]}_{dasars[i]}_{i}" for i in range(len(images))], dtype=object)
+            _save_matlab_latents(
+                matlab_out_path,
+                embeddings,
+                labels,
+                np.array(["call" if labels[i] == 1 else "non-call" for i in range(len(labels))], dtype=object),
+                call_types,
+                sites,
+                dasars,
+                sample_ids=sample_ids,
+            )
+            print(f"  wrote MATLAB latent export -> {matlab_out_path}")
 
         writer = SummaryWriter(log_dir=str(Path(out_dir) / run_name))
 
@@ -308,6 +361,8 @@ def _parse() -> argparse.Namespace:
     p.add_argument("--scratch",    default="runs/scratch_demo/best.pt")
     p.add_argument("--warmstart",  default="runs/warmstart_demo/best.pt")
     p.add_argument("--out",        default="runs")
+    p.add_argument("--matlab-out-dir", default=None,
+                   help="Optional directory to write MATLAB .mat latent exports for each run.")
     p.add_argument("--n",          type=int, default=2000,
                    help="total samples to embed (stratified call/non-call)")
     p.add_argument("--device",     default="cpu")
@@ -316,4 +371,4 @@ def _parse() -> argparse.Namespace:
 
 if __name__ == "__main__":
     a = _parse()
-    build(a.data, a.scratch, a.warmstart, a.out, a.n, a.device)
+    build(a.data, a.scratch, a.warmstart, a.out, a.matlab_out_dir, a.n, a.device)

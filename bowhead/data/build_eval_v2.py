@@ -90,12 +90,14 @@ def _parse_name(stem: str) -> dict | None:
         return None
     g = m.groupdict()
     date_site = f"{g['date']}_{g['site']}"
+    date_site_dasar = f"{g['date']}_{g['site']}_{g['dasar']}"
     return {
         "site": g["site"],
         "dasar": g["dasar"],
         "date": g["date"],
         "call_type": g["type"],
         "date_site": date_site,
+        "date_site_dasar": date_site_dasar,
         "label": 0 if g["type"] == "0" else 1,
     }
 
@@ -141,18 +143,24 @@ def scan_master_inventory(base_dir: Path, cache_path: Path | None = None) -> lis
 def load_exclusion_sets(
     train_npz_path: Path,
     train_source_dirs: list[Path] | None = None,
+    group_key: str = "date_site",
 ) -> tuple[set[str], set[str] | None]:
-    """Return (excluded_date_site_groups, excluded_stems_or_None).
+    """Return (excluded_groups, excluded_stems_or_None).
 
-    ``excluded_date_site_groups`` is always computed from the training NPZ's
-    stored ``date``/``site`` fields -- this is the primary, guaranteed-available
-    exclusion mechanism. ``excluded_stems`` is only available if the caller
-    points at the actual source .dir directories used to build that NPZ
-    (the NPZ itself does not retain per-file stems), and is an optional,
-    stricter defense-in-depth check on top of the group exclusion.
+    ``excluded_groups`` is computed from the training NPZ's stored date/site/
+    optionally dasar fields using the requested ``group_key``. ``excluded_stems``
+    is only available if the caller points at the actual source .dir
+    directories used to build that NPZ (the NPZ itself does not retain
+    per-file stems), and is an optional, stricter defense-in-depth check on top
+    of the group exclusion.
     """
     d = np.load(train_npz_path, allow_pickle=True)
-    excluded_groups = set(f"{dd}_{ss}" for dd, ss in zip(d["date"], d["site"]))
+    if group_key == "date_site":
+        excluded_groups = set(f"{dd}_{ss}" for dd, ss in zip(d["date"], d["site"]))
+    elif group_key == "date_site_dasar":
+        excluded_groups = set(f"{dd}_{ss}_{da}" for dd, ss, da in zip(d["date"], d["site"], d["dasar"]))
+    else:
+        raise ValueError(f"Unsupported group_key: {group_key}")
 
     excluded_stems: set[str] | None = None
     if train_source_dirs:
@@ -172,9 +180,10 @@ def _stratified_sample(
     n_target: int,
     label_name: str,
     rng: np.random.Generator,
+    group_key: str = "date_site",
 ) -> tuple[list[dict], dict[str, int]]:
     """Sample up to n_target rows from pool_rows, proportional to each
-    date_site group's availability, WITHOUT replacement and WITHOUT ever
+    group_key group's availability, WITHOUT replacement and WITHOUT ever
     exceeding a group's true size (i.e. never replicating a call).
 
     If the pool can't supply n_target, all available rows are used and a
@@ -183,7 +192,7 @@ def _stratified_sample(
     """
     by_group: dict[str, list[dict]] = defaultdict(list)
     for r in pool_rows:
-        by_group[r["date_site"]].append(r)
+        by_group[r[group_key]].append(r)
     group_sizes = {g: len(v) for g, v in by_group.items()}
     total_available = sum(group_sizes.values())
 
@@ -238,6 +247,8 @@ def build_eval_v2(
     seed: int = 0,
     train_source_dirs: list[Path] | None = None,
     inventory_cache: Path | None = None,
+    group_key: str = "date_site_dasar",
+    allow_same_group: bool = False,
     dry_run: bool = False,
 ) -> None:
     rng = np.random.default_rng(seed)
@@ -249,28 +260,45 @@ def build_eval_v2(
 
     # ---------------------------------------------------------- exclusion
     print(f"\nLoading exclusion sets from training NPZ {train_npz} ...")
-    excluded_groups, excluded_stems = load_exclusion_sets(train_npz, train_source_dirs)
-    print(f"  {len(excluded_groups):,} date_site groups excluded (used in training)")
-    if excluded_stems is not None:
+    excluded_groups, excluded_stems = load_exclusion_sets(
+        train_npz, train_source_dirs, group_key=group_key
+    )
+    if allow_same_group:
+        if excluded_stems is None:
+            raise ValueError(
+                "--allow-same-group requires --train-source-dirs so exact-filename exclusion is available."
+            )
+        print("  allow_same_group enabled: group-level exclusion is disabled.")
         print(f"  {len(excluded_stems):,} exact training filenames excluded (defense-in-depth)")
     else:
-        print(
-            "  NOTE: no --train-source-dirs given, so exact-filename exclusion is not active; "
-            "relying solely on date_site group exclusion (the same conservative key already "
-            "used by bowhead/data/splits.py: make_date_site_group)."
-        )
+        print(f"  {len(excluded_groups):,} {group_key} groups excluded (used in training)")
+        if excluded_stems is not None:
+            print(f"  {len(excluded_stems):,} exact training filenames excluded (defense-in-depth)")
+        else:
+            print(
+                "  NOTE: no --train-source-dirs given, so exact-filename exclusion is not active; "
+                "relying solely on date_site group exclusion (the same conservative key already "
+                "used by bowhead/data/splits.py: make_date_site_group)."
+            )
 
     n_excl_group = 0
     n_excl_stem = 0
     eligible: list[dict] = []
-    for r in rows:
-        if r["date_site"] in excluded_groups:
-            n_excl_group += 1
-            continue
-        if excluded_stems is not None and r["stem"] in excluded_stems:
-            n_excl_stem += 1
-            continue
-        eligible.append(r)
+    if allow_same_group:
+        for r in rows:
+            if excluded_stems is not None and r["stem"] in excluded_stems:
+                n_excl_stem += 1
+                continue
+            eligible.append(r)
+    else:
+        for r in rows:
+            if r[group_key] in excluded_groups:
+                n_excl_group += 1
+                continue
+            if excluded_stems is not None and r["stem"] in excluded_stems:
+                n_excl_stem += 1
+                continue
+            eligible.append(r)
 
     print(
         f"\nEligible pool after group-exclusive filtering: {len(eligible):,} / {len(rows):,} "
@@ -283,8 +311,12 @@ def build_eval_v2(
     print(f"  eligible auto   (Type 0)  : {len(auto_rows):,}")
 
     # -------------------------------------------------------------- sample
-    manual_sample, manual_group_sizes = _stratified_sample(manual_rows, n_manual, "manual", rng)
-    auto_sample, auto_group_sizes = _stratified_sample(auto_rows, n_auto, "auto", rng)
+    manual_sample, manual_group_sizes = _stratified_sample(
+        manual_rows, n_manual, "manual", rng, group_key=group_key
+    )
+    auto_sample, auto_group_sizes = _stratified_sample(
+        auto_rows, n_auto, "auto", rng, group_key=group_key
+    )
     sampled_rows = manual_sample + auto_sample
     n = len(sampled_rows)
     print(
@@ -293,21 +325,33 @@ def build_eval_v2(
     )
 
     # ------------------------------------------------------- verify (hard)
-    sampled_groups = set(r["date_site"] for r in sampled_rows)
-    group_overlap = sampled_groups & excluded_groups
-    assert not group_overlap, (
-        f"LEAKAGE DETECTED: {len(group_overlap)} date_site groups overlap training set: "
-        f"{sorted(group_overlap)[:10]}..."
-    )
-    if excluded_stems is not None:
+    sampled_groups = set(r[group_key] for r in sampled_rows)
+    if allow_same_group:
         sampled_stems = set(r["stem"] for r in sampled_rows)
         stem_overlap = sampled_stems & excluded_stems
         assert not stem_overlap, (
             f"LEAKAGE DETECTED: {len(stem_overlap)} exact filenames overlap training set."
         )
-        print("Verified: zero date_site group overlap AND zero exact-filename overlap with training.")
+        shared_groups = sampled_groups & excluded_groups
+        print(
+            f"Verified: zero exact-filename overlap with training (same groups allowed). "
+            f"Shared {group_key} groups: {len(shared_groups):,}."
+        )
     else:
-        print("Verified: zero date_site group overlap with training (filename-level check not run).")
+        group_overlap = sampled_groups & excluded_groups
+        assert not group_overlap, (
+            f"LEAKAGE DETECTED: {len(group_overlap)} {group_key} groups overlap training set: "
+            f"{sorted(group_overlap)[:10]}..."
+        )
+        if excluded_stems is not None:
+            sampled_stems = set(r["stem"] for r in sampled_rows)
+            stem_overlap = sampled_stems & excluded_stems
+            assert not stem_overlap, (
+                f"LEAKAGE DETECTED: {len(stem_overlap)} exact filenames overlap training set."
+            )
+            print("Verified: zero group overlap AND zero exact-filename overlap with training.")
+        else:
+            print("Verified: zero group overlap with training (filename-level check not run).")
 
     # ------------------------------------------------------------ manifest
     manifest = {
@@ -326,12 +370,20 @@ def build_eval_v2(
         "n_sampled_auto": len(auto_sample),
         "n_final_total": n,
         "n_excluded_training_groups": len(excluded_groups),
-        "n_sampled_date_site_groups": len(sampled_groups),
+        "group_key": group_key,
+        "allow_same_group": allow_same_group,
+        "n_sampled_groups": len(sampled_groups),
+        "n_shared_groups": len(sampled_groups & excluded_groups) if allow_same_group else 0,
         "shortfall_manual": max(0, n_manual - len(manual_sample)),
         "shortfall_auto": max(0, n_auto - len(auto_sample)),
         "verification": (
-            "zero date_site group overlap with training (assert passed)"
-            + (" + zero exact-filename overlap (assert passed)" if excluded_stems is not None else "")
+            f"zero exact-filename overlap with training (same groups allowed, "
+            f"{len(sampled_groups & excluded_groups):,} shared {group_key} groups)"
+            if allow_same_group
+            else (
+                f"zero {group_key} group overlap with training (assert passed)"
+                + (" + zero exact-filename overlap (assert passed)" if excluded_stems is not None else "")
+            )
         ),
     }
     manifest_path.parent.mkdir(parents=True, exist_ok=True)
@@ -414,9 +466,9 @@ def main() -> None:
     p.add_argument(
         "--base-dir",
         type=Path,
-        default=Path("/Users/oboulais/Public/Bowhead_DL_Project/BCB_Whale_Datasets"),
+        default=Path("/Volumes/R3D_2024_1/BowheadDeepLearningMATLAB/BCB_Whale_Datasets"),
         help="Root of the master ~1.2M-file database (recursively scanned for .mat files). "
-        "Update this to the external hard-drive mount point.",
+        "Defaults to the current BCB_Whale_Datasets mount path.",
     )
     p.add_argument(
         "--train-npz",
@@ -437,6 +489,19 @@ def main() -> None:
     p.add_argument("--n-manual", type=int, default=50_000)
     p.add_argument("--n-auto", type=int, default=150_000)
     p.add_argument("--gram", default="SNR_gram")
+    p.add_argument(
+        "--group-key",
+        choices=["date_site", "date_site_dasar"],
+        default="date_site_dasar",
+        help="Grouping key used to exclude training-proximate files. "
+             "Use date_site_dasar when only ~20 day/site groups are available.",
+    )
+    p.add_argument(
+        "--allow-same-group",
+        action="store_true",
+        help="Allow sampling from the same date_site/date_site_dasar groups used by training, "
+             "but still exclude exact training filenames when --train-source-dirs is provided.",
+    )
     p.add_argument("--seed", type=int, default=0)
     p.add_argument(
         "--inventory-cache",
@@ -464,6 +529,8 @@ def main() -> None:
         seed=args.seed,
         train_source_dirs=args.train_source_dirs,
         inventory_cache=args.inventory_cache,
+        group_key=args.group_key,
+        allow_same_group=args.allow_same_group,
         dry_run=args.dry_run,
     )
 
