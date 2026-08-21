@@ -9,8 +9,8 @@ function GIF_movie_demo(x,type,alpha_value,titstr,initial_azi,initial_el)
 %c = sqrt(X.^2+Y.^2+Z.^2);
 
 % Create figure and initial scatter3
-scale=1;  %Size of plot.  The bigger the scale the smaller the file.
-fig = figure('Color','w','Position',[200 200 1000/scale 1000/scale]);
+scale=2;  %Size of plot.  The bigger the scale the smaller the file.
+fig = figure('Color','w','Position',[200 200 700/scale 600/scale]);
 ax = axes('Parent',fig);
 % ss(Idir,J)=scatter3(data.x_tsne(Itype,1), data.x_tsne(Itype,2), data.x_tsne(Itype,3), 3,type(Itype),'filled');
 
@@ -26,57 +26,49 @@ ax = axes('Parent',fig);
 %     hold on
 % end
 
-
-s = scatter3(ax, x(:,1), x(:,2),x(:,3), 3, type,'filled');
-s.MarkerEdgeAlpha=alpha_value;
-s.MarkerFaceAlpha=alpha_value;
-%s.Marker=str{I};
-hold on
+ s = scatter3(ax, x(:,1), x(:,2),x(:,3), 3, type,'filled');
+    s.MarkerEdgeAlpha=alpha_value;
+    s.MarkerFaceAlpha=alpha_value;
+    %s.Marker=str{I};
+    hold on
 
 colormap(jet)
 colorbar
 axis equal
-xlabel('UMAP Dimension 1');
-ylabel('UMAP Dimension 2');
-zlabel('UMAP Dimension 3');
+xlabel('Dimension 1');
+ylabel('Dimension 2');
+zlabel('Dimension 3');
 %title(titstr);
 
 % Lighting and view
 %view(45,25)
 view(initial_azi,initial_el);
 grid on
+%xlim([-2 2]);ylim([-2 2]);zlim([-2 2]);
 
 drawnow
 
 % Parameters for rotation and output
 nFrames = 120/2;         % number of frames in full rotation
 az0 = initial_azi;              % starting azimuth
-el0 =initial_el;               % elevation (fixed)
+el =initial_el;               % elevation (fixed)
 outputGIF = true;      % set false to skip GIF creation
 gifName = titstr;
 delayTime = 8*0.03;      % delay between frames in seconds
-maxlimm=4;
+
 % Preallocate capture
 frames(nFrames) = struct('cdata',[],'colormap',[]);
 
 % Rotate by changing azimuth angle
 
 axis vis3d
-view([0 90]);
 for k = 1:nFrames
     az = bnorm(az0 + 180*(k-1)/nFrames);
-    az=az0;
-    el = bnorm(el0 + 360*(k-1)/nFrames);
-
-    R = rotationMatrix(az,el);
-    Xt = (R * x')';
-    set(s,'XData',Xt(:,1),'YData',Xt(:,2),'ZData',Xt(:,3));
-    xlim(maxlimm*[-1 1]);ylim(maxlimm*[-1 1]);zlim(maxlimm*[-1 1])
     %view(ax, az, el)
 
-    %camorbit(360/nFrames,0)
-    title(sprintf('%s az: %6.2f el:%6.2f',titstr,el,az),'Interpreter','none');
-    % drawnow
+    camorbit(360/nFrames,0)
+    title(sprintf('%s az: %6.2f el:%6.2f',titstr,az,el),'Interpreter','none');
+    drawnow
     frames(k) = getframe(fig);
     if outputGIF
         img = frame2im(frames(k));
@@ -93,13 +85,6 @@ end
 if ~outputGIF
     movie(fig, frames, 1, 1/delayTime)
 end
-end
+
 % Close or leave figure open as desired (comment/uncomment)
 % close(fig)
-
-function R = rotationMatrix(az,el)
-az = deg2rad(az); el = deg2rad(el);
-Rz = [ cos(az) -sin(az) 0; sin(az) cos(az) 0; 0 0 1];
-Ry = [ cos(el) 0 sin(el); 0 1 0; -sin(el) 0 cos(el)];
-R = Ry * Rz;
-end

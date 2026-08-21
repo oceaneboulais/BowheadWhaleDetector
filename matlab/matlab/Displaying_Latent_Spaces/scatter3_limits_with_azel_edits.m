@@ -1,24 +1,10 @@
 
-
-
-function ud=scatter3_GUI_rotate_transparency(X0,type,default_view,zlimm_want)
+function scatter3_limits_with_azel_edits(X0,type)
 % Scatter3 with independent X,Y,Z sliders + edit boxes for axis limits
 % and edit boxes for Azimuth and Elevation
-% Alpha (transparency) slider + edit
-
-
-
-
-
-if ~exist("default_view","var")
-    default_view=[];
-end
-if ~exist("zlimm_want","var")
-    zlimm_want=[];
-end
 rng(0)
 %X0 = randn(500,3);
-alpha_value=0.2;  %Initial value for transparency.
+alpha_value=0.3;
 sizze=8;
 
 % Figure and axes
@@ -33,7 +19,7 @@ colorbar('location','south')
 %view(ax,[0 0]);
 
 % UI positions
-x0 = 2*540; y = 420+50; w = 320; htxt = 20; gap = 50; editW = 80;
+x0 = 2*540; y = 420; w = 320; htxt = 20; gap = 50; editW = 80;
 
 % X limit label, slider, edit
 uicontrol(fig,'Style','text','Position',[x0 y w htxt],'String','X limit [min max]','HorizontalAlignment','left');
@@ -64,15 +50,8 @@ uicontrol(fig,'Style','text','Position',[x0 y w htxt],'String','Elevation (deg)'
 sldEl = uicontrol(fig,'Style','slider','Position',[x0 y-20 w-100 15],'Min',-90,'Max',90,'Value',30,'Callback',@onControl);
 edtEl = uicontrol(fig,'Style','edit','Position',[x0+w-90 y-22 editW 22],'String',sprintf('%.1f',30),'Callback',@onAzElEdit);
 
-%Transparency slider
-y = y - gap; % position above other controls
-uicontrol(fig,'Style','text','Position',[x0 y w htxt],'String','Marker Alpha (0-1)','HorizontalAlignment','left');
-sldAlpha = uicontrol(fig,'Style','slider','Position',[x0 y-20 w-100 15],'Min',0,'Max',1,'Value',alpha_value,'Callback',@onAlphaControl);
-edtAlpha = uicontrol(fig,'Style','edit','Position',[x0+w-90 y-22 editW 22],'String',sprintf('%.2f',alpha_value),'Callback',@onAlphaEdit);
-
-
 % Checkbox: transform or change view
-chk = uicontrol(fig,'Style','checkbox','Position',[x0 20 320 20],'String','Rotate coordinates (transform points)','Value',1,'Callback',@onControl);
+chk = uicontrol(fig,'Style','checkbox','Position',[x0 30 320 20],'String','Rotate coordinates (transform points)','Value',0,'Callback',@onControl);
 
 % Store handles/data
 ud.X0 = X0; ud.h = h; ud.ax = ax;
@@ -80,67 +59,13 @@ ud.sldX = sldX; ud.sldY = sldY; ud.sldZ = sldZ;
 ud.edtX = edtX; ud.edtY = edtY; ud.edtZ = edtZ;
 ud.sldAz = sldAz; ud.sldEl = sldEl; ud.edtAz = edtAz; ud.edtEl = edtEl;
 ud.chk = chk;
-ud.sldAlpha = sldAlpha;
-ud.edtAlpha = edtAlpha;
 fig.UserData = ud;
 
-
 % Initialize symmetric limits [-3 3] and update display
-setInitialLimits([-5 5], [-5 5], [-5 5]);
-if ~isempty(default_view)
-
-    set(ud.edtAz,'String',sprintf('%.1f', default_view(1)));
-    set(ud.edtEl,'String',sprintf('%.1f', default_view(2)));
-    set(ud.sldAz,'Value',default_view(1));
-    set(ud.sldEl,'Value',default_view(2));
-    % updateEditsFromAxes();
-    %applyRotationAndView();
-end
-
-%%%Slice the cake to a chosen layer...
-if ~isempty(zlimm_want)
-    zlim(ud.ax,zlimm_want);
-    set(ud.sldZ,'Value',max(abs(zlimm_want)));
-    set(ud.edtZ,'String',sprintf('%4.3f %4.2f',zlimm_want(1),zlimm_want(2)));
-end
+%setInitialLimits([-3 3], [-3 3], [-3 3]);
 updateDisplay();
 
 % --- Callbacks -------------------------------------------------------
-
-    function onAlphaControl(src,~)
-        % slider changed -> update edit and scatter alpha
-        udtmp = fig.UserData;
-        a = get(src,'Value');
-        set(udtmp.edtAlpha,'String',sprintf('%.2f',a));
-        if isfield(udtmp,'h') && isvalid(udtmp.h)
-            udtmp.h.MarkerEdgeAlpha = a;
-            udtmp.h.MarkerFaceAlpha = a;
-        end
-        fig.UserData = udtmp;
-    end
-
-    function onAlphaEdit(src,~)
-        % edit changed -> validate and update slider and scatter alpha
-        udtmp = fig.UserData;
-        a = str2double(get(src,'String'));
-        if isnan(a) || a<0 || a>1
-            % revert
-            if isfield(udtmp,'sldAlpha')
-                set(src,'String',sprintf('%.2f',get(udtmp.sldAlpha,'Value')));
-            else
-                set(src,'String',sprintf('%.2f',alpha_value));
-            end
-            return
-        end
-        set(udtmp.sldAlpha,'Value',a);
-        if isfield(udtmp,'h') && isvalid(udtmp.h)
-            udtmp.h.MarkerEdgeAlpha = a;
-            udtmp.h.MarkerFaceAlpha = a;
-        end
-        fig.UserData = udtmp;
-    end
-
-
     function onControl(src,~)
         % Generic callback for sliders/checkbox: update edits/view
         ud = fig.UserData;

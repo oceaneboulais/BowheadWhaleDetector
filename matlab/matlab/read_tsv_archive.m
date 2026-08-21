@@ -162,7 +162,7 @@ if fid ~= -1    % did file open?
             disp('try problem');
             disp(tline);
             Icall=Icall-1;
-           
+            keyboard
 
         end %try
     end   %of file read loop(while)

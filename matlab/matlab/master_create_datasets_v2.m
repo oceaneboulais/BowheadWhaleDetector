@@ -12,7 +12,7 @@
 %  The script first uploads manual annotation logs and then uses a simple CFAR energy
 %  detector (with narrow bands) to flag additional samples that don't
 %  overlap the manual identifications.  It uses the manual logs to identify
-%  whale calls, to ensure all signals are treated identically.  %%%file name is time of midpoint of spectrogram....
+%  whale calls
 %
 %  After this script run master_index_database.m, and then
 %  master_assemble_unsupervised_database.
@@ -25,7 +25,7 @@ warning off
 %%%Computer specific information
 [~,hostname]=system('hostname');
 if contains(hostname,'ishmael')
-    GSI_file_dir='~/mnt/jonah3/Shared/Data';
+    GSI_file_dir='/Volumes/Shared-2/Data/';
     code_dir='/Users/thode/Desktop/DeepLearningBowhead/Software_repo/matlab';
     WAV_file_dir='/Volumes/Bowhead4/';
     Manual_record_files_dir='../../Shell_Manual_Results';
@@ -66,7 +66,7 @@ year_want={'08','09','10','11','12','13','14'};  %What years to process
 Site={'2','3','4','5'};  %What sites to process
 
 year_want={'08','10','12','14'};
-Site={'3','5'};
+Site={'5'};
 
 %year_want={'08'};
 %Site={'5'};
@@ -144,11 +144,8 @@ for Iyear=1:length(year_want)
             DASAR_list{I}=sprintf('S%s%s%s0',Site{Isite},year_want{Iyear},DASAR_strings(I));
         end
 
-        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         %%%%%%%Import manual analyst archive, and if needed, repackage as
         %%%%%%%convenient MAT file for future access.
-        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
         ctmin=0;
         ctmax=Inf;
         fname=sprintf('%s%s20%s%sAllSite%s_20%s_manual_archive.txt', ...
@@ -193,8 +190,8 @@ for Iyear=1:length(year_want)
         call_type_all=call_type_all(Itype);
 
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-        %%% Start spectrogram creation loop 
-        %%% Loop through dates and create a selection file for each DASAR and day
+        %%%%%%%Start spectrogram creation loop 
+        %%%Loop through dates and create a selection file for each DASAR and day
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
         for Id=debug.Idasar_start:length(DASAR_list)  %For each DASAR desired
@@ -219,7 +216,7 @@ for Iyear=1:length(year_want)
             tabs_start=datenum(temp);
             tabs_start_unique=unique(tabs_start);  %%%The individual days present in the manual data for this DASAR/Site/year.
 
-            %%%%%%%Download acoustic header, which has clock drift%%%%%%%%%%%%%%
+            %%%%%%%Download raw acoustic data%%%%%%%%%%%%%%
             if strcmpi(data_file_type,'gsi')
                 dir_want=sprintf('%s/Shell20%s_GSI_Data/S%s%sgsif/S%s%s%s0', ...
                     GSI_file_dir,year_want{Iyear},Site{Isite},year_want{Iyear}, ...
@@ -315,8 +312,7 @@ for Iyear=1:length(year_want)
                 Ithis_day=Ithis_day(manual.tsec<debug.sec_to_load); %%In case only loaded part of file
                 manual.tsec=(tabs_DASAR(Ithis_day)-tabs_start_unique(Iday))*24*3600;
                 manual.tabs=tabs_DASAR(Ithis_day);
-                tdrift_file=head.tdrift;
-                manual.tsec=manual.tsec*(1+head.tdrift/86400);  %This converts manually-logged time into acoustic time...
+                manual.tsec=manual.tsec*(1+head.tdrift/86400);
                
                 manual.duration=manual.ind.duration(Iexist(Ithis_day),Id);
                 manual.tmid=manual.tsec+0.5*manual.duration;
@@ -354,7 +350,7 @@ for Iyear=1:length(year_want)
                 %x=int16(x-2^15);
 
 
-                %%%%%%%%%%%%%%%%%%Energy Detector.m%%%%%%%%%%%%%%%%%%%
+                 %%%%%%%%%%%%%%%%%Energy Detector.m%%%%%%%%%%%%%%%%%%%
                 %%% Now generate false detections by a simple event
                 %%% detector and check that they aren't whale calls.
                 %
@@ -380,7 +376,6 @@ for Iyear=1:length(year_want)
                     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
                     %%%%%%Determine whether any overlap exists between
                     %%%manual detections and these detections.
-                    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
                     param.compare.ovlap=0.5; %Fraction of time overlap required to count as 'hit'
                     [Score{Ichunk},Manual_index]=evaluate_overlap_between_manual_automated(manual.tsec,manual.tend,detect.tstart,detect.tend,param.compare.ovlap);
@@ -391,7 +386,7 @@ for Iyear=1:length(year_want)
                     Manual_index_match=Manual_index(:);
                     Manual_index_match=unique(Manual_index_match(~isnan(Manual_index_match)));  %unique may not be needed
 
-                    %%%%%  Determine manual annotations that were missed by
+                    %%%%%Determine manual annotations that were missed by
                     %%%%%  automated detector.
                     Imiss=setdiff(min(Manual_index_match):max(Manual_index_match),Manual_index_match);
                     fprintf('%i out of %i (%6.2f percent) manual detections in this chunk missing from automated detections\n',length(Imiss),max(Manual_index_match),100*length(Imiss)/max(Manual_index_match))
@@ -423,7 +418,11 @@ for Iyear=1:length(year_want)
                         param.spec.plot_fmax=detect.fmax(II);
                         param.spec.duration=detect.duration(II);
                         param.spec.debug_max_tmid=1*60;
-                       
+                       % if Idet<param.spec.debug_count
+                        %    param.spec.debug_plot=true;
+                        %else
+                        %    param.spec.debug_plot=false;
+                        % end
 
                         %%%Identify if a whale call
                         if(~isnan(Score{Ichunk}(II,1)))
@@ -436,13 +435,8 @@ for Iyear=1:length(year_want)
                             param.spec.debug_plot=false;
                         end
 
-                        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-                        %%%%%%%%Create SNR gram (spectrogram)%%%%%%%%%%%%%%%
-                        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
                         [SNR_gram,VS_metrics,FF,TT,bearing]=create_spectrogram_sample(x,head.Fs,tmid,file_len_sec,spectrogram_len_sec,param.spec,titstr);
                         
-
-
                         %%%Sometimes file length not right
                         if isempty(SNR_gram)
                             continue
@@ -450,16 +444,10 @@ for Iyear=1:length(year_want)
 
                         %%%Extract peak frequency and time%%%
                         [temp]=extract_features_from_SNRgram(TT(2)-TT(1),FF(2)-FF(1),SNR_gram);
-                        features.fpeak=temp.Fmax;
-                        features.tpeak=temp.Tmax;
-                        features.duration2=temp.duration;
-                        features.SNR=temp.SNR;
-                        features.fmin=detect.fmin(Idet);  
-                        features.fmax=detect.fmax(Idet);
-                        features.duration1=detect.duration(Idet);
-                        features.dB_RMS=detect.dB_RMS(Idet);
-                        features.magnitude=detect.magnitude(Idet);
+                        PeakFrequency=temp.Fmax;
+                        PeakTime=temp.Tmax;
 
+                        
                         if  param.spec.debug_plot & mytype>0
                             Iman=Manual_index(II,1);
                             fprintf('Call %i of %i, Type %i, Score %6.2f\n',Iman,length(manual.tend),mytype,Score{Ichunk}(II,1));
@@ -480,11 +468,9 @@ for Iyear=1:length(year_want)
                         if isempty(SNR_gram)
                             continue
                         end
-
-                        %%%file name is time of midpoint of spectrogram....
                         if write_files
                             output_name=file_array{Ifile_want}(1:(end-4));
-                            tabs_tstartt=detect.tstart_abs(II)+datenum(0,0,0,0,0,tmid-detect.tstart(II));  %%%file name is time of midpoint of spectrogram....
+                            tabs_tstartt=detect.tstart_abs(II)+datenum(0,0,0,0,0,tmid-detect.tstart(II));
                             tabs_tmid=detect.tstart_abs(II)+datenum(0,0,0,0,0,tmid);
                             temp=datestr(tabs_tstartt,30);
                             output_name(17:end)=temp(10:end);
@@ -513,14 +499,91 @@ for Iyear=1:length(year_want)
                             dF=FF(2)-FF(1);dT=TT(2)-TT(1);
                             NTV_gram=VS_metrics{2};KEtoPE_gram=VS_metrics{3};Polar_gram=VS_metrics{4};
                             save([current_save_dir{Idir} filesep output_name],'SNR_gram','NTV_gram','KEtoPE_gram','Polar_gram', ...
-                                'dF','dT','bearing','tabs_tstartt','features');
+                                'dF','dT','bearing','tabs_tstartt','PeakFrequency','PeakTime');
 
                         end
                     end %Idet
                     fprintf('Finished Chunk %i of %i in DASAR %s in day %s\n',Ichunk,Nchunks,DASAR_list{Id},datestr(tabs_start_unique(Iday)));
                 end %Ichunk
                 pause(1);
-             
+                %%%%%%%%%%%%%%%%%%%%%%%%%%%%Process and save all manual detections for this day%%%%%%%%%%%%%%
+
+%                 disp('Starting manual spectrograms')
+%                 %Igood_org=Ipass(Igood);  %Ensure that we skipp the NaN..
+%                 %Itemp is associated with Igood, which is associated with tabs.
+%                 %Igood_org associated with original manual.ind.* fields
+% 
+%                 for I=1:length(Ithis_day)
+%                     tmid=manual.tmid(I);
+% 
+%                     if max(size(x))/head.Fs-tmid<=0
+%                         continue
+%                     end
+% 
+%                     titstr{1}=sprintf('Manual detection: Filename: %s, middle time %6.2f seconds, %i of %i',file_array{Ifile_want},tmid,I,length(Ithis_day));
+%                     titstr{2}=sprintf('Final SNR image, SNR: %6.2f, abs start: %s Call_type %i',manual.SNR(I),datestr(manual.tabs(I)),manual.call_type(I));
+% 
+%                     param.spec.plot_fmin=manual.fmin(I);
+%                     param.spec.plot_fmax=manual.fmax(I);
+%                     param.spec.duration=manual.duration(I);
+% 
+% %                     if I<5
+% %                         param.spec.debug_plot=true;
+% %                     else
+% %                         param.spec.debug_plot=false;
+% %                     end
+%                     [SNR_gram,VS_metrics,FF,TT,bearing]=create_spectrogram_sample(x,head.Fs,tmid,file_len_sec,spectrogram_len_sec,param.spec,titstr);
+%                     if isempty(SNR_gram)
+%                         disp('SNR_gram is empty')
+%                         continue
+%                     end
+% 
+%                     if write_files
+%                         output_name=file_array{Ifile_want}(1:(end-4));
+%                         tabs_tstartt=tabs_DASAR(Ithis_day(I))+datenum(0,0,0,0,0,tmid-manual.tsec(I));
+%                         temp=datestr(tabs_tstartt,30);
+%                         output_name(17:end)=temp(10:end);
+%                         output_name=sprintf('%s_Type%i',output_name,manual.call_type(I));
+% 
+%                         %%%Save spectrograms to current subdirectory and
+%                         %%%start a new subdirectory if too many files in
+%                         %%%current one.
+%                         while current_file_count>=max_files_per_directory
+%                             Idump=str2double(current_save_dir(end-4));
+%                             current_save_dir(end-4)=int2str(Idump+1);
+%                             if ~exist(current_save_dir,'dir')
+%                                 eval(sprintf('!mkdir %s',current_save_dir))
+%                             end
+%                             cd(current_save_dir);
+%                             fprintf('Changing to %s\n',current_save_dir);
+% 
+%                             current_file_count=length(dir('*.mat'));
+% 
+%                         end
+%                         if exist([output_name '.mat'],"file")>0  %if file already exists
+%                             continue
+%                         end
+%                         current_file_count=current_file_count+1;
+%                         dF=FF(2)-FF(1);dT=TT(2)-TT(1);
+%                         NTV_gram=VS_metrics{2};KEtoPE_gram=VS_metrics{3};Polar_gram=VS_metrics{4};
+%                         save(output_name,'SNR_gram','NTV_gram','KEtoPE_gram','Polar_gram','dF','dT','bearing','tabs_tstartt','param');
+% 
+%                         %database{Iyear,Isite,Id}.tabs=[]
+% 
+%                     end
+%                     if current_file_count~=length(dir('*.mat'))
+%                         keyboard
+%                     end
+%                 end %I in Igood
+% 
+%                 disp('Finished  spectrograms')
+
+                %%%Update current file count in current subdirectory
+               % if write_files
+                %    cd ../../Event_sounds.dir/D1.dir
+                %    current_save_dir=pwd;
+                %    current_file_count=length(dir('*mat'));
+                %end
 
                
             end %Iday
