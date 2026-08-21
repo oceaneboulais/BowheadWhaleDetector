@@ -1,0 +1,199 @@
+\documentclass[border=8pt, multi, tikz]{standalone}
+\usepackage{import}
+\usepackage{tikz}
+\usetikzlibrary{positioning, arrows.meta, shapes.geometric, calc, fit}
+
+\definecolor{inputcolor}{RGB}{220,220,255}
+\definecolor{conv1color}{RGB}{255,230,150}
+\definecolor{conv2color}{RGB}{255,200,120}
+\definecolor{conv3color}{RGB}{255,170,90}
+\definecolor{latentcolor}{RGB}{255,100,100}
+\definecolor{densecolor}{RGB}{150,255,150}
+\definecolor{outputcolor}{RGB}{220,220,255}
+
+\tikzset{
+    block/.style={
+        rectangle,
+        draw,
+        thick,
+        minimum width=2.5cm,
+        minimum height=1.5cm,
+        align=center,
+        font=\Large\bfseries,
+        drop shadow
+    },
+    arrow/.style={
+        -Stealth,
+        very thick,
+        draw=black!80
+    },
+    label/.style={
+        font=\large,
+        align=center
+    }
+}
+
+\begin{document}
+\begin{tikzpicture}[node distance=2.5cm, auto]
+
+    % Title
+    \node[font=\Huge\bfseries] at (0, 12) {Bowhead Whale Autoencoder Architecture};
+    \node[font=\Large] at (0, 11) {Hybrid 5×5/3×3 Convolutional Autoencoder};
+    
+    % ========== ENCODER ==========
+    \node[font=\LARGE\bfseries, text=blue!70!black] at (-8, 9.5) {ENCODER};
+    
+    % Input
+    \node[block, fill=inputcolor, minimum height=2cm] (input) at (-8, 7.5) {
+        \textbf{Input}\\[0.3cm]
+        1×121×104\\[0.1cm]
+        \small Spectrogram
+    };
+    
+    % Conv1 + Pool1
+    \node[block, fill=conv1color, right=of input] (conv1) {
+        \textbf{Conv1}\\[0.2cm]
+        5×5 kernel\\
+        32 filters\\[0.1cm]
+        \small +BN+ReLU+Pool
+    };
+    \node[label, below=0.1cm of conv1] {\small Output: 32×60×52};
+    
+    % Conv2 + Pool2
+    \node[block, fill=conv2color, right=of conv1] (conv2) {
+        \textbf{Conv2}\\[0.2cm]
+        3×3 kernel\\
+        64 filters\\[0.1cm]
+        \small +BN+ReLU+Pool
+    };
+    \node[label, below=0.1cm of conv2] {\small Output: 64×30×26};
+    
+    % Conv3 + Pool3
+    \node[block, fill=conv3color, right=of conv2] (conv3) {
+        \textbf{Conv3}\\[0.2cm]
+        3×3 kernel\\
+        128 filters\\[0.1cm]
+        \small +BN+ReLU+Pool
+    };
+    \node[label, below=0.1cm of conv3] {\small Output: 128×15×13};
+    
+    % ========== BOTTLENECK ==========
+    \node[font=\LARGE\bfseries, text=red!70!black] at (4, 4) {BOTTLENECK};
+    
+    % Flatten
+    \node[block, fill=densecolor, below=of conv3, minimum width=2cm] (flatten) {
+        \textbf{Flatten}\\[0.2cm]
+        26,624
+    };
+    
+    % Dense 1
+    \node[block, fill=densecolor, below=of flatten, minimum width=2cm] (dense1) {
+        \textbf{Dense}\\[0.2cm]
+        64\\[0.1cm]
+        \small +ReLU
+    };
+    
+    % Latent Space
+    \node[block, fill=latentcolor, below=of dense1, minimum width=3cm, minimum height=2cm] (latent) {
+        \textbf{LATENT}\\
+        \textbf{SPACE}\\[0.3cm]
+        \Huge 32-dim
+    };
+    
+    % ========== DECODER ==========
+    \node[font=\LARGE\bfseries, text=blue!70!black] at (8, -5) {DECODER};
+    
+    % Dense 2
+    \node[block, fill=densecolor, below=of latent, minimum width=2cm] (dense2) {
+        \textbf{Dense}\\[0.2cm]
+        64\\[0.1cm]
+        \small +ReLU
+    };
+    
+    % Dense 3
+    \node[block, fill=densecolor, below=of dense2, minimum width=2cm] (dense3) {
+        \textbf{Dense}\\[0.2cm]
+        26,624\\[0.1cm]
+        \small +ReLU
+    };
+    
+    % Reshape
+    \node[block, fill=densecolor, below=of dense3, minimum width=2.5cm] (reshape) {
+        \textbf{Reshape}\\[0.2cm]
+        128×15×13
+    };
+    
+    % Deconv1
+    \node[block, fill=conv3color, left=of reshape] (deconv1) {
+        \textbf{TransConv1}\\[0.2cm]
+        2×2 kernel\\
+        64 filters\\[0.1cm]
+        \small +BN+ReLU
+    };
+    \node[label, below=0.1cm of deconv1] {\small Output: 64×30×26};
+    
+    % Deconv2
+    \node[block, fill=conv2color, left=of deconv1] (deconv2) {
+        \textbf{TransConv2}\\[0.2cm]
+        2×2 kernel\\
+        32 filters\\[0.1cm]
+        \small +BN+ReLU
+    };
+    \node[label, below=0.1cm of deconv2] {\small Output: 32×60×52};
+    
+    % Deconv3 (Output)
+    \node[block, fill=conv1color, left=of deconv2] (deconv3) {
+        \textbf{TransConv3}\\[0.2cm]
+        2×2 kernel\\
+        1 filter
+    };
+    \node[label, below=0.1cm of deconv3] {\small Output: 1×121×104};
+    
+    % Output
+    \node[block, fill=outputcolor, left=of deconv3, minimum height=2cm] (output) {
+        \textbf{Output}\\[0.3cm]
+        1×121×104\\[0.1cm]
+        \small Reconstruction
+    };
+    
+    % ========== ARROWS ==========
+    \draw[arrow] (input) -- (conv1);
+    \draw[arrow] (conv1) -- (conv2);
+    \draw[arrow] (conv2) -- (conv3);
+    \draw[arrow] (conv3) -- (flatten);
+    \draw[arrow] (flatten) -- (dense1);
+    \draw[arrow] (dense1) -- (latent);
+    \draw[arrow] (latent) -- (dense2);
+    \draw[arrow] (dense2) -- (dense3);
+    \draw[arrow] (dense3) -- (reshape);
+    \draw[arrow] (reshape) -- (deconv1);
+    \draw[arrow] (deconv1) -- (deconv2);
+    \draw[arrow] (deconv2) -- (deconv3);
+    \draw[arrow] (deconv3) -- (output);
+    
+    % ========== ANNOTATIONS ==========
+    % Architecture type
+    \node[draw, thick, rounded corners, fill=yellow!20, font=\large, align=center] at (0, -14) {
+        \textbf{Hybrid Architecture:}\\
+        First layer uses 5×5 kernel to capture broad N/U-shaped whale call patterns\\
+        Subsequent layers use 3×3 kernels for efficient detail refinement
+    };
+    
+    % Model stats
+    \node[draw, thick, rounded corners, fill=green!10, font=\large, align=left] at (-8, -16.5) {
+        \textbf{Model Statistics:}\\
+        • Parameters: 3,359,105\\
+        • Latent Dimension: 32\\
+        • Compression Ratio: 378:1
+    };
+    
+    % Training config
+    \node[draw, thick, rounded corners, fill=blue!10, font=\large, align=left] at (8, -16.5) {
+        \textbf{Training Configuration:}\\
+        • Optimizer: Adam (lr=1e-3)\\
+        • Loss: MSE Reconstruction\\
+        • Batch Normalization: Enabled
+    };
+
+\end{tikzpicture}
+\end{document}
