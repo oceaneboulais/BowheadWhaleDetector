@@ -1,0 +1,110 @@
+# macOS
+.DS_Store
+
+# BFG Repo-Cleaner reports
+.bfg-report/
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Virtual environments (do not commit)
+.venv/
+.venv*/
+.venv_*/
+venv/
+venv*/
+env/
+Pytorch_scripts/.venv/
+Pytorch_scripts/.venv*/
+
+# Large local datasets (do not commit)
+Spectrogram_Image_Database.dir/
+Pytorch_scripts/Spectrogram_Image_Database.dir/
+Azigram_pulse_detector.dir/
+BCB_Whale_Datasets/
+Pytorch_scripts/Bash/
+
+# Large archives
+*.zip
+
+# Model files, plots, and results directories (NEVER commit these!)
+models/
+plots/
+results/
+*.pth
+*.h5
+*.pkl
+*.ckpt
+*.weights
+
+# Model files and training outputs (NEVER commit these!)
+*.pth
+*.h5
+*.pkl
+*.ckpt
+*.weights
+
+# Data files (NEVER commit these!)
+*.mat
+*.npy
+*.npz
+
+# Image outputs (NEVER commit these!)
+*.jpg
+*.jpeg
+*.png
+*.gif
+
+# Text logs and outputs
+*.log
+*.txt
+*.asv
+diary_output.txt
+
+# Result directories (NEVER commit these!)
+Autoencoder_v*/
+*.dir/
+models/
+plots/
+runs/
+results/
+Pytorch_scripts/runs/
+Pytorch_scripts/models/
+Pytorch_scripts/plots/
+Pytorch_scripts/results/
+Pytorch_scripts/Misc_outputs*/
+Pytorch_scripts/Autoencoder_*/
+Pytorch_scripts/trained_models/
+
+# Archived scripts (development versions)
+Pytorch_scripts/Archived_Scripts/
+
+# Jupyter notebooks checkpoints
+.ipynb_checkpoints/
+
+# IDE settings
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Exception: Keep essential MATLAB reference files (small)
+!GSI_header_table.mat
+
+# PDFs and figures
+*.Word documents
+*.docx
+ReadMe_whaleCallAnalysisOutputFiles.docx
+
+# Environment files
+environment.yml
+
+# pdf
+*.fig
+
+# Shell installers and large binaries
+*.sh
+!Pytorch_scripts/Bash/*.sh
+Pytorch_scripts/Bash/miniconda.sh
+Pytorch_scripts/Archived_Scripts/conv_autoencoder.pth

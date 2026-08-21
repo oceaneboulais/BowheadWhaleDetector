@@ -1,0 +1,101 @@
+\documentclass[border=8pt]{standalone}
+\usepackage{tikz}
+\usetikzlibrary{positioning,shapes.geometric,arrows.meta,calc,3d}
+
+\definecolor{ConvColor}{RGB}{230,159,0}
+\definecolor{PoolColor}{RGB}{86,180,233}
+\definecolor{LatentColor}{RGB}{213,94,0}
+\definecolor{DeconvColor}{RGB}{0,158,115}
+
+\begin{document}
+\begin{tikzpicture}[
+    every node/.style={font=\small},
+    block/.style={draw, fill=#1, minimum height=1.5cm, minimum width=1cm, drop shadow},
+    arrow/.style={->, >=Stealth, thick}
+]
+
+% Title
+\node[font=\Large\bfseries] at (0,5) {Autoencoder Architecture};
+\node[font=\normalsize] at (0,4.5) {2-channel Input (SNR+NTV) $\rightarrow$ 32D Latent Space};
+
+% Input
+\node[block=blue!30, minimum height=3cm, minimum width=0.5cm] (input) at (-10,0) {};
+\node[above=0.1cm of input] {\textbf{Input}};
+\node[below=0.1cm of input, align=center] {2$\times$121$\times$104\\(SNR+NTV)};
+
+% Encoder Layer 1
+\node[block=ConvColor!60, minimum height=3cm, minimum width=0.8cm, right=1cm of input] (conv1) {};
+\node[above=0.1cm of conv1] {\textbf{Conv1+BN}};
+\node[below=0.1cm of conv1] {32$\times$121$\times$104};
+\draw[arrow] (input.east) -- (conv1.west);
+
+\node[block=PoolColor!60, minimum height=2.5cm, minimum width=0.6cm, right=0.5cm of conv1] (pool1) {};
+\node[above=0.1cm of pool1] {\textbf{Pool1}};
+\node[below=0.1cm of pool1] {32$\times$61$\times$52};
+\draw[arrow] (conv1.east) -- (pool1.west);
+
+% Encoder Layer 2
+\node[block=ConvColor!70, minimum height=2.5cm, minimum width=1cm, right=0.5cm of pool1] (conv2) {};
+\node[above=0.1cm of conv2] {\textbf{Conv2+BN}};
+\node[below=0.1cm of conv2] {64$\times$61$\times$52};
+\draw[arrow] (pool1.east) -- (conv2.west);
+
+\node[block=PoolColor!70, minimum height=2cm, minimum width=0.6cm, right=0.5cm of conv2] (pool2) {};
+\node[above=0.1cm of pool2] {\textbf{Pool2}};
+\node[below=0.1cm of pool2] {64$\times$30$\times$26};
+\draw[arrow] (conv2.east) -- (pool2.west);
+
+% Encoder Layer 3
+\node[block=ConvColor!80, minimum height=2cm, minimum width=1.2cm, right=0.5cm of pool2] (conv3) {};
+\node[above=0.1cm of conv3] {\textbf{Conv3+BN}};
+\node[below=0.1cm of conv3] {128$\times$30$\times$26};
+\draw[arrow] (pool2.east) -- (conv3.west);
+
+\node[block=PoolColor!80, minimum height=1.5cm, minimum width=0.6cm, right=0.5cm of conv3] (pool3) {};
+\node[above=0.1cm of pool3] {\textbf{Pool3}};
+\node[below=0.1cm of pool3] {128$\times$15$\times$13};
+\draw[arrow] (conv3.east) -- (pool3.west);
+
+% Latent Space
+\node[block=LatentColor!90, circle, minimum size=2cm, right=1cm of pool3] (latent) {};
+\node[above=0.1cm of latent, font=\bfseries] {\textbf{LATENT}};
+\node at (latent) {\Huge 32D};
+\draw[arrow, line width=2pt] (pool3.east) -- (latent.west);
+
+% Decoder Layer 1
+\node[block=DeconvColor!80, minimum height=1.5cm, minimum width=1.2cm, right=1cm of latent] (deconv1) {};
+\node[above=0.1cm of deconv1] {\textbf{Deconv1}};
+\node[below=0.1cm of deconv1] {64$\times$30$\times$26};
+\draw[arrow, line width=2pt] (latent.east) -- (deconv1.west);
+
+% Decoder Layer 2
+\node[block=DeconvColor!70, minimum height=2cm, minimum width=1cm, right=0.5cm of deconv1] (deconv2) {};
+\node[above=0.1cm of deconv2] {\textbf{Deconv2}};
+\node[below=0.1cm of deconv2] {32$\times$61$\times$52};
+\draw[arrow] (deconv1.east) -- (deconv2.west);
+
+% Decoder Layer 3
+\node[block=DeconvColor!60, minimum height=2.5cm, minimum width=0.8cm, right=0.5cm of deconv2] (deconv3) {};
+\node[above=0.1cm of deconv3] {\textbf{Deconv3}};
+\node[below=0.1cm of deconv3] {1$\times$121$\times$104};
+\draw[arrow] (deconv2.east) -- (deconv3.west);
+
+% Output
+\node[block=blue!30, minimum height=3cm, minimum width=0.5cm, right=0.5cm of deconv3] (output) {};
+\node[above=0.1cm of output] {\textbf{Output}};
+\node[below=0.1cm of output, align=center] {1$\times$121$\times$104\\(Reconstruction)};
+\draw[arrow] (deconv3.east) -- (output.west);
+
+% Section labels
+\node[font=\Large\bfseries, ConvColor] at (-5,-3) {ENCODER};
+\node[font=\Large\bfseries, LatentColor] at (0,-3) {BOTTLENECK};
+\node[font=\Large\bfseries, DeconvColor] at (5,-3) {DECODER};
+
+% Compression ratio
+\node[draw, fill=yellow!20, rounded corners, font=\small, align=center] at (0,-4) {
+    Compression Ratio: 394$\times$\\
+    (12,584 parameters $\rightarrow$ 32 dimensions)
+};
+
+\end{tikzpicture}
+\end{document}
