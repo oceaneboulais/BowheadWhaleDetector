@@ -1,21 +1,19 @@
-%function  [outputs]=extract_features_from_SNRgram(dT,dF,SNR_gram)
-
 function  [outputs]=extract_features_from_SNRgram(dT,dF,SNR_gram)
 
 image_scale_factor=5;
-%mindB=5;
-debug_plot=false;
+mindB=5;
+debug_plot=true;
 
 FF=dF*(1:size(SNR_gram,1));
 TT=dT*(1:size(SNR_gram,2));
 SNR_gram=double(SNR_gram)/image_scale_factor;
 tmp=max(SNR_gram,[],2);
-[~,Imax]=max(tmp);
+[Pmax,Imax]=max(tmp);
 outputs.Fmax=FF(Imax);
 
 tmp=max(SNR_gram,[],1);
 tmp=tmp-min(tmp);
-[~,Imax]=max(tmp);
+[Pmax,Imax]=max(tmp);
 outputs.Tmax=TT(Imax);
 
 

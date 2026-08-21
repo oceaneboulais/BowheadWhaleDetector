@@ -5,49 +5,23 @@
 %  You can control what specific years, sites, and DASARs are incorporated.
 %   However, all days from a particular year/site/DASAR are included, since
 %   the specific dates are specific to a given year/site/DASAR combo.
-%
-%   The 'manual_fraction' controls what fraction of transients are
-%   associated with manual annotations.
-%   However, both manual and other calls are selected from the same
-%   proportion as their representation in the database folders...
-%
-%   files_to_exclude is a file that contains a list of filenames used
-%       in the training dataset, so you can confirm no training data
-%       is present in an evaluation dataset.
+
 close all
 clear
 
-[~,hostname] = system('hostname');
-[~,user_name]=system('whoami');
-
-switch hostname(1:end-1)
-
-    case 'ishmael.ucsd.edu'
-        database_folder='~/Public/Spectrogram_Image_Database.dir';
-    otherwise
-        database_folder='/Volumes/Thode_AI_Working_Disk/Spectrogram_Image_Database_Sites35_ADG_Y08101214_centered.dir/';
-        files_to_exclude_location= '/Users/thode/Projects/Greeneridge_bowhead_detection/DeepLearningNPRB_Project/Software/matlab/Displaying_Latent_Spaces';
-        files_to_exclude_location=[files_to_exclude_location filesep 'latent_embeddings_3d_train_MATLAB.mat'];
-end
-
- %if files_to_exclude_location is empty, don't need to worry about avoiding certain files
- if ~isempty(files_to_exclude_location)
-     files_to_exclude=load(files_to_exclude_location,'original_filenames');
-     files_to_exclude.original_filenames=string(files_to_exclude.original_filenames);
- end
+database_folder='../../Spectrogram_Image_Database.dir';
 data=load([database_folder '/Database_index.mat']);
 eval(sprintf('!mkdir %s/Unsupervised_database.dir',database_folder));
 eval(sprintf('!rm %s/Unsupervised_database.dir/*.mat',database_folder));
 
-Nsamples=200000;  %%Total data samples wanted in unsupervised database
-manual_fraction=(1/9);  %%Fraction of samples that come from manual annotations
+Nsamples=100000;  %%Total data samples wanted in unsupervised database
+manual_fraction=0;  %%Fraction of samples that come from manual annotations
 include_airguns=true;  %%If true include spectrograms of likely airgun signals
 
 year_want={'08','10','12','14'};%Note, must be in numerical order
 Site={'3','5'};
 DASAR_strings={'A','D','G'};
 folder_names={'Event_sounds.dir','Manually_selected_bowhead_calls.dir'};
-
 
 %index{Iyear,Isite,Iday,Ifold,I_d_directory};  Note that results NOT
 %               broken down by DASAR
@@ -57,7 +31,6 @@ folder_names={'Event_sounds.dir','Manually_selected_bowhead_calls.dir'};
 for I=1:length(data.DASAR_strings)
     data.DASAR_strings_cell{I}=data.DASAR_strings(I);
 end
-
 folder_fractions=[1-manual_fraction manual_fraction];
 
 %%%Trim down database indicies to match requested subsets above
@@ -103,7 +76,7 @@ for Iyear=1:length(year_want)
 
         for Iday=1:length(day_want)
             disp(day_want{Iday});
-            for Ifold=length(folder_names):-1:1
+            for Ifold=1:length(folder_names)
                 if folder_fractions(Ifold)==0
                     continue
                 end
@@ -116,11 +89,9 @@ for Iyear=1:length(year_want)
                     file_fraction=data_sub.file_fraction.manual;
                 end
 
-                %%%%How many samples are wanted from each folder%%%%
+                %%%%How many samples are wanted from each folder
                 %  row is DASAR, column is 'D*.dir' folder
                 Nsamples_want=floor(folder_fractions(Ifold)*Nsamples*squeeze(file_fraction(Iyear,Isite,Iday,:,:)));
-                %%%%%%%%%%%%%%%%%%%%%%%%
-
                 Nsamples_running_count=Nsamples_running_count+sum(Nsamples_want(:));
                 Ndd=size(Nsamples_want,2);
                 for Idd=1:Ndd  %%subfolders
@@ -141,44 +112,26 @@ for Iyear=1:length(year_want)
                         airgun_index=airgun_index(data_sub.index{Iyear,Isite,Iday,Ifold,Idd}.is_airgun<1);
                     end
                     for Idasar=1:length(DASAR_strings)
-                        fprintf('Year:%s, Site %s, Date:%s, %s, Folder D%i, DASAR %s\n', ...
-                            year_want{Iyear},Site{Isite},day_want{Iday},folder_names{Ifold},Idd,DASAR_strings{Idasar});
-                        
+                        disp(DASAR_strings{Idasar});
                         Igood=find(fnames(:,5)==DASAR_strings{Idasar});
-
                         Nfiles_local=length(Igood);
                         if Nfiles_local==0
-                            disp('No DASAR here')
+                            %disp('No DASAR here')
                             continue
                         end
-                        %%%%Remove files from consideration if they were
-                        %%%%already used to train....
-                        Ipass=check_that_file_not_on_exclude_list(fnames(Igood,:),files_to_exclude.original_filenames);
-                        Igood=Igood(Ipass);
-
-                        Nfiles_local=length(Igood);
-                        if Nfiles_local==0
-                            disp('No unused files here...')
-                            continue
-                        end
-                      
                         %Two situations can occur.  First, the number
                         %of files in the folder is greater than the
                         %number of requested samples from this folder.
 
                         if Nfiles_local>=Nsamples_want(Idasar,Idd)
-
                             Ichoose=Igood(randperm(length(Igood),Nsamples_want(Idasar,Idd)));  %%Select number of random files needed.
+
                         else  %%if we are requesting more samples than files, sample with replacement.
+                           % Ichoose=Igood(randperm(Nfiles_local));
+                            %NN=ceil(Nsamples_want(Idasar,Idd)/Nfiles_local);
+                            %Ichoose=repmat(Ichoose,1,NN);Ichoose=Ichoose(:);
+                            %Ichoose=Ichoose(1:Nsamples_want(Idasar,Idd));
 
-                            %%%Note that if we are trying to exclude files,
-                            %%%then nothing in this folder can likely be
-                            %%%used.
-                            if ~isempty(files_to_exclude_location)
-                                disp('Insufficient numbers of files to meet goals...');
-
-                                continue
-                            end
                             Ichoose=Igood(randi(Nfiles_local,1,Nsamples_want(Idasar,Idd)));
                         end
 
@@ -187,7 +140,6 @@ for Iyear=1:length(year_want)
 
                        %%%Copy specific files to destination folder
                         for Ifile=1:length(Ichoose)
-
                             copy_file_str=sprintf('%s/D%i.dir/%s',dir_string,Idd,fnames(Ichoose(Ifile),:));
                             if exist(copy_file_str,'file')==0
                                 keyboard

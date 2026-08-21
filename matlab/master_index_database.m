@@ -108,9 +108,9 @@ for Iyear=1:length(year_want)
 
                     for Ifile=1:Nfiles
                         temp=load([fnames(Ifile).folder filesep fnames(Ifile).name]);
-                        % if contains(fnames(Ifile).name,test_file)
+                       % if contains(fnames(Ifile).name,test_file)
                         %    keyboard
-                        % end
+                       % end
                         %%%Check that spectrogram sizes are consistent...if
                         %%%not, move to a Trash folder for investigation.
                         if ~all(SNR_gram_dims==size(temp.SNR_gram))
@@ -177,14 +177,6 @@ for Iyear=1:length(year_want)
                         Idasar_index=find(DASAR_ID(Idasar)==DASAR_strings);
                         file_fraction.auto_noairgun(Iyear,Isite,Iday,Idasar_index,Idd)=Nfiles_DASAR;
                     end %Idasar
-
-                    for Ifile=1:Nfiles
-                        temp=load([fnames(Ifile).folder filesep fnames(Ifile).name],'features');
-                        features=temp.features;
-                        features.ICI=index{Iyear,Isite,Iday,Ifold,Idd}.is_airgun(Ifile);
-                        save([fnames(Ifile).folder filesep fnames(Ifile).name],'features',"-append");
-                    end
-
                     disp('Finished airgun detection');toc
                 end %Idd
             end %Ifold

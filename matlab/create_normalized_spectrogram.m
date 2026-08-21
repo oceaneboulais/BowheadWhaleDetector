@@ -10,7 +10,6 @@
 %           by param.image_scale_factor;
 function [SNR,output_array_fin,F,T,median_raw]=create_normalized_spectrogram(y,Fs,spectrogram_len_sec,param)
 
-
 param.debug_plot=false;
 param.num_blobs=3;
 param.blob_size=5;
@@ -184,12 +183,11 @@ else  %Just a spectrogram please
     SNR=(param.image_scale_factor)*(B(:,Indexx)-median_noise);
     T=T(Indexx);
     T=T-T(1);
-    if any(SNR(:)>255)
+    if any(BB(:)>255)
         fprintf('SNR greater than %6.2f\n',255/param.image_scale_factor);
         keyboard
     end
     SNR=uint8(SNR);
-    output_array_fin=[];
 end
 
 %toc(t1)
