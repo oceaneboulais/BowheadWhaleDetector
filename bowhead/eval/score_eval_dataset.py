@@ -223,12 +223,108 @@ def run(
     build_html(npz_out, html_out, eval_dir=eval_dir)
 
 
+@torch.no_grad()
+def _score_model_npz(
+    model: EncoderClassifier,
+    images: np.ndarray,
+    device: str,
+    grams: tuple[str, ...] = GRAMS_1CH,
+) -> np.ndarray:
+    """Score pre-loaded images from an NPZ; ignores the grams tuple (single channel)."""
+    n = len(images)
+    probs = np.empty(n, dtype=np.float32)
+    t0 = time.time()
+    for start in range(0, n, BATCH_SIZE):
+        end = min(start + BATCH_SIZE, n)
+        chunk = images[start:end].astype(np.float32) / 255.0
+        x = torch.from_numpy(chunk[:, None]).to(device)
+        probs[start:end] = model.predict_proba(x).cpu().numpy()
+        if (end % 10_000) < BATCH_SIZE or end == n:
+            rate = end / (time.time() - t0)
+            eta = (n - end) / rate / 60 if rate > 0 else 0
+            print(f"  {end:>7,}/{n:,}  ({rate:.0f}/s  ETA {eta:.1f} min)")
+    return probs
+
+
+def run_npz(
+    data_npz: Path,
+    models: list[tuple[str, Path]],
+    npz_out: Path,
+    html_out: Path,
+    device: str | None = None,
+) -> None:
+    """Score models directly from a pre-built NPZ (no .mat file I/O needed)."""
+    if device is None or device == "auto":
+        device = best_device()
+    print(f"Device: {device}")
+
+    print(f"\nLoading {data_npz} ...")
+    d = np.load(str(data_npz), allow_pickle=True)
+    images  = d["images"]
+    labels  = d["label"].astype(np.int64)
+    sites   = d["site"]
+    years   = np.array([dt[:4] for dt in d["date"]])
+    dasars  = d["dasar"]
+    call_types = d["call_type"]
+    n = len(labels)
+    prevalence = float(labels.mean())
+    print(f"  {n:,} samples | {int(labels.sum()):,} calls | "
+          f"{int((labels==0).sum()):,} non-calls | prevalence={prevalence:.4f}")
+
+    if len(np.unique(labels)) < 2:
+        raise RuntimeError("Both classes must be present to compute metrics.")
+
+    all_metrics: dict = {}
+    all_probs: dict = {}
+    for name, ckpt_path in models:
+        print(f"\nLoading {name} from {ckpt_path} ...")
+        model = _load_model(ckpt_path, device)
+        print(f"Scoring {name} ...")
+        probs = _score_model_npz(model, images, device)
+        del model
+        metrics = score_predictions(labels, probs)
+        all_metrics[name] = metrics
+        all_probs[name] = probs
+        print(f"  {name}: AP={metrics.average_precision:.4f}  "
+              f"ROC-AUC={metrics.roc_auc:.4f}")
+        for yr in sorted(set(years.tolist())):
+            mask = years == yr
+            yl, yp = labels[mask], probs[mask]
+            if len(np.unique(yl)) < 2:
+                continue
+            ym = score_predictions(yl, yp)
+            print(f"    year={yr}: n={mask.sum():,}  AP={ym.average_precision:.4f}  "
+                  f"ROC-AUC={ym.roc_auc:.4f}")
+
+    npz_out.parent.mkdir(parents=True, exist_ok=True)
+    save_dict: dict = {"n": n, "prevalence": prevalence,
+                       "model_names": np.array(list(all_metrics.keys())),
+                       "file_site": sites, "file_year": years,
+                       "file_dasar": dasars, "file_label": labels,
+                       "call_type\": call_types,
+                       "dataset_label": np.array(str(data_npz.resolve()))}
+    for name, m in all_metrics.items():
+        key = name.replace(" ", "_")
+        save_dict[f"{key}_precision"] = m.pr_precision
+        save_dict[f"{key}_recall"]    = m.pr_recall
+        save_dict[f"{key}_ap"]        = m.average_precision
+        save_dict[f"{key}_roc_auc"]   = m.roc_auc
+        save_dict[f"{key}_probs"]     = all_probs[name]
+    np.savez_compressed(str(npz_out), **save_dict)
+    print(f"\nSaved PR curves → {npz_out}")
+
+    build_html(npz_out, html_out)
+
+
 def _parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(description=__doc__,
                                 formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument(
-        "--eval-dir", type=Path, required=True,
+        "--eval-dir", type=Path, default=None,
         help="Mixed evaluation .dir folder (Type0=non-call, Type1-7=call)")
+    p.add_argument(
+        "--data-npz", type=Path, default=None,
+        help="Pre-built eval NPZ (faster than --eval-dir; no .mat I/O)")
     # Legacy flags (backward-compatible)
     p.add_argument("--scratch",   type=Path, default=None,
                    help="Scratch checkpoint (legacy shorthand for --model scratch <path>)")
@@ -251,7 +347,6 @@ def _parse_args() -> argparse.Namespace:
 if __name__ == "__main__":
     args = _parse_args()
 
-    # Build ordered model list: legacy flags first, then --model entries
     models: list[tuple[str, Path]] = []
     if args.scratch:
         models.append(("scratch", Path(args.scratch)))
@@ -261,16 +356,26 @@ if __name__ == "__main__":
         models.append((name, Path(ckpt)))
 
     if not models:
-        # Fall back to repo defaults
         models = [
             ("scratch",   _REPO_ROOT / "runs" / "scratch"   / "best.pt"),
             ("warmstart", _REPO_ROOT / "runs" / "warmstart" / "best.pt"),
         ]
 
-    run(
-        eval_dir=Path(args.eval_dir),
-        models=models,
-        npz_out=args.npz_out,
-        html_out=args.html_out,
-        device=args.device,
-    )
+    if args.data_npz:
+        run_npz(
+            data_npz=args.data_npz,
+            models=models,
+            npz_out=args.npz_out,
+            html_out=args.html_out,
+            device=args.device,
+        )
+    elif args.eval_dir:
+        run(
+            eval_dir=args.eval_dir,
+            models=models,
+            npz_out=args.npz_out,
+            html_out=args.html_out,
+            device=args.device,
+        )
+    else:
+        raise SystemExit("Provide either --data-npz or --eval-dir")
