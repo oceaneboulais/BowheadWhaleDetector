@@ -9,7 +9,7 @@ Typical usage (from repo root):
 
 Or with explicit paths:
     python -m bowhead.eval.build_curves_html \\
-        --npz  runs/pr_curves_full_dataset.npz \\
+        --npz  runs/pr_curves_latent_eval_8to1.npz \\
         --out  docs/detection_curves.html
 """
 
@@ -103,10 +103,17 @@ def _make_thumbnails(eval_dir: Path) -> dict:
     return thumbs
 
 
-def build_html(npz_path: Path, out_path: Path, eval_dir: Path | None = None) -> None:
+def build_html(npz_path: Path, out_path: Path, eval_dir: Path | None = None,
+               dataset_label: str | None = None) -> None:
     d    = np.load(npz_path, allow_pickle=True)
     n    = int(d["n"])
     prev = float(d["prevalence"])
+    # Prefer explicit arg, then value saved in npz, then fall back to hardcoded name
+    _saved_label = str(d["dataset_label"]) if "dataset_label" in d else None
+    dataset_name = dataset_label or _saved_label or (
+        "Unsupervised_database_Evaluation_200K_"
+        "8Auto1Manual_ADG_Y08101214_centered_06May2026.dir"
+    )
 
     # ── Detect whether this is the new multi-model format or the old 2-model one
     if "model_names" in d:
@@ -203,6 +210,14 @@ def build_html(npz_path: Path, out_path: Path, eval_dir: Path | None = None) -> 
     n_calls    = int(round(n * prev))
     n_noncalls = n - n_calls
 
+    # Use per-type counts from npz when available; fall back to hardcoded values
+    if "call_type" in d:
+        from collections import Counter as _Counter
+        _ct_counts = _Counter(str(x) for x in d["call_type"])
+        actual_type_counts = {int(k): v for k, v in _ct_counts.items()}
+    else:
+        actual_type_counts = _TYPE_COUNTS
+
     thumbs: dict = {}
     if eval_dir is not None:
         try:
@@ -221,7 +236,7 @@ def build_html(npz_path: Path, out_path: Path, eval_dir: Path | None = None) -> 
     rows_html = ""
     for t in sorted(_TYPE_INFO):
         label, desc = _TYPE_INFO[t]
-        count = _TYPE_COUNTS.get(t, "\u2014")
+        count = actual_type_counts.get(t, "—")
         badge_color = "#c44" if t == 0 else "#2a7"
         badge_text  = "non-call" if t == 0 else "call"
         badge = (f'<span style="background:{badge_color};color:#fff;'
@@ -240,10 +255,6 @@ def build_html(npz_path: Path, out_path: Path, eval_dir: Path | None = None) -> 
             + "</tr>\n"
         )
 
-    dataset_name = (
-        "Unsupervised_database_Evaluation_200K_"
-        "8Auto1Manual_ADG_Y08101214_centered_06May2026.dir"
-    )
     dataset_section = (
         '<div style="font-family:sans-serif;font-size:13px;color:#444;'
         'max-width:1100px;margin:8px auto 10px auto;padding:12px 16px;'
@@ -375,8 +386,8 @@ def _parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(description=__doc__,
                                 formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("--npz", type=Path,
-                   default=_REPO_ROOT / "runs" / "pr_curves_full_dataset.npz",
-                   help="Path to the PR-curves .npz file (default: runs/pr_curves_full_dataset.npz)")
+                   default=_REPO_ROOT / "runs" / "pr_curves_latent_eval_8to1.npz",
+                   help="Path to the PR-curves .npz file (default: runs/pr_curves_latent_eval_8to1.npz)")
     p.add_argument("--out", type=Path,
                    default=_REPO_ROOT / "docs" / "detection_curves.html",
                    help="Output HTML path (default: docs/detection_curves.html)")
