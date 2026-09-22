@@ -24,11 +24,15 @@ docs/literature_review_dl.html
 # --- generated reports/figures ---
 /results/
 
+# --- paper (managed via Overleaf, not this repo) ---
+/paper/
+
 # --- editor / OS / local agent settings ---
 .DS_Store
 .claude/
 .vscode/
 .idea/
+~$*
 
 # Eval_v2 review artifacts (local, large)
 /data/eval_v2_review_2026-07-27/full/

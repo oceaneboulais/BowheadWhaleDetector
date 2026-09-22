@@ -67,7 +67,8 @@ class CallTypeProbe:
                 C=C,
                 max_iter=max_iter,
                 class_weight="balanced",
-                multi_class="multinomial",
+                # multi_class="multinomial" was removed in newer scikit-learn;
+                # lbfgs already fits a multinomial model natively by default.
                 solver="lbfgs",
                 random_state=seed,
             ),

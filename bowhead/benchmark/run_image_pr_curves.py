@@ -136,10 +136,14 @@ def _build_html(curves: dict, n: int, prev: float, out_path: Path) -> None:
             text=(f"Frozen-Embedding Benchmark — Detection PR Curves"
                   f" | n={n:,}  prevalence={prev:.4f}"),
             font=dict(size=14)),
-        xaxis =dict(title="Recall",                           range=[0,1]),
-        yaxis =dict(title="Precision",                        range=[0,1.02]),
-        xaxis2=dict(title="Miss Fraction (1−Recall)",         range=[0,1]),
-        yaxis2=dict(title="False Discovery Rate (1−Precision)", range=[0,1.02]),
+        xaxis =dict(title="Recall",                           range=[0,1],
+                   showgrid=True, gridcolor="#e5e7eb", gridwidth=1, griddash="solid"),
+        yaxis =dict(title="Precision",                        range=[0,1.02],
+                   showgrid=True, gridcolor="#e5e7eb", gridwidth=1, griddash="solid"),
+        xaxis2=dict(title="Miss Fraction (1−Recall)",         range=[0,1],
+                   showgrid=True, gridcolor="#e5e7eb", gridwidth=1, griddash="solid"),
+        yaxis2=dict(title="False Discovery Rate (1−Precision)", range=[0,1.02],
+                   showgrid=True, gridcolor="#e5e7eb", gridwidth=1, griddash="solid"),
         legend=dict(x=0.01, y=0.15, bgcolor="rgba(255,255,255,0.85)",
                     bordercolor="#ccc", borderwidth=1),
         plot_bgcolor="white", paper_bgcolor="white",
@@ -158,20 +162,32 @@ def _build_html(curves: dict, n: int, prev: float, out_path: Path) -> None:
     fig.write_html(str(out_path), include_plotlyjs=True, full_html=True)
 
     # summary table panel
+    model_refs = {
+        "scratch_cnn": "This study; CNN trained from scratch on the bowhead spectrogram dataset. Architecture: ConvEncoder-style CNN with 3 Conv-BN-ReLU-MaxPool blocks (32→64→128 channels), FC-64→FC-32 latent bottleneck, then linear 32→2 classifier head.",
+        "warmstart_cnn": "This study; same CNN architecture warm-started from the AE encoder trunk. Architecture: ConvEncoder-style CNN with 3 Conv-BN-ReLU-MaxPool blocks (32→64→128 channels), FC-64→FC-32 latent bottleneck, then linear 32→2 classifier head.",
+        "resnet18": "He et al. (2015). Deep Residual Learning for Image Recognition.",
+        "efficientnet_b0": "Tan & Le (2019). EfficientNet: Rethinking Model Scaling for Convolutional Neural Networks.",
+        "ast_imagenet": "Gong et al. (2021). AST: Audio Spectrogram Transformer.",
+    }
+
     rows_html = ""
     for name, m in sorted(curves.items(), key=lambda kv: -kv[1].average_precision):
         col = COLORS.get(name, "#555")
+        display_name = name.replace('_', ' ').title()
+        ref = model_refs.get(name, "This study / local benchmark implementation.")
         rows_html += (
             f"<tr>"
             f'<td style="padding:4px 12px;border:1px solid #ddd">'
             f'<span style="color:{col};font-size:16px">&#9644;</span>&nbsp;'
-            f"<strong>{name.replace('_',' ').title()}</strong></td>"
+            f"<strong>{display_name}</strong></td>"
             f'<td style="padding:4px 12px;border:1px solid #ddd;text-align:right">'
             f"{m.average_precision:.4f}</td>"
             f'<td style="padding:4px 12px;border:1px solid #ddd;text-align:right">'
             f"{m.roc_auc:.4f}</td>"
             f'<td style="padding:4px 12px;border:1px solid #ddd;text-align:right">'
             f"{m.precision_at_recall(0.70):.4f}</td>"
+            f'<td style="padding:4px 12px;border:1px solid #ddd;max-width:360px;line-height:1.4">'
+            f"{ref}</td>"
             f"</tr>\n"
         )
 
@@ -179,22 +195,47 @@ def _build_html(curves: dict, n: int, prev: float, out_path: Path) -> None:
         return (f'<th style="padding:4px 12px;background:#eef;'
                 f'border:1px solid #ccc">{t}</th>')
 
+    metric_defs = (
+        '<div style="margin-top:14px;padding-top:10px;border-top:1px solid #ddd">'
+        '<strong>Metric definitions</strong><br>'
+        '<ul style="margin:6px 0 0 18px;padding:0">'
+        '<li><b>Recall</b> = TP / (TP + FN): fraction of true calls recovered.</li>'
+        '<li><b>Miss fraction</b> = 1 − recall: fraction of true calls missed.</li>'
+        '<li><b>Precision</b> = TP / (TP + FP): fraction of flagged detections that are true calls.</li>'
+        '<li><b>False discovery rate (FDR)</b> = 1 − precision: fraction of detections that are false alarms.</li>'
+        '<li><b>Average precision (AP)</b>: area under the precision–recall curve, summarizing ranking quality over all thresholds.</li>'
+        '<li><b>ROC-AUC</b>: area under the receiver operating characteristic curve, summarizing TPR vs FPR tradeoff.</li>'
+        '<li><b>Precision at recall 0.70 (P@R0.70)</b>: precision achieved when recall is constrained to be at least 0.70.</li>'
+        '</ul>'
+        '<br><strong>References</strong><br>'
+        '<ul style="margin:6px 0 0 18px;padding:0">'
+        '<li>Davis, J. and Goadrich, M. (2006). The Relationship Between Precision-Recall and ROC Curves. ICML.</li>'
+        '<li>Saito, T. and Rehmsmeier, M. (2015). The Precision-Recall Plot Is More Informative Than the ROC Plot When Evaluating Binary Classifiers on Imbalanced Datasets. PLOS ONE.</li>'
+        '<li>Fawcett, T. (2006). An Introduction to ROC Analysis. Pattern Recognition Letters.</li>'
+        '</ul>'
+        '</div>'
+    )
+
+    dataset_name = "Unsupervised_database_Evaluation_200K_8Auto1Manual_ADG_Y08101214_centered_07Aug2026.dir.zip"
+
     panel = (
         '<div style="font-family:sans-serif;font-size:13px;color:#444;'
         'max-width:1150px;margin:10px auto 24px auto;padding:14px 18px;'
         'background:#f9f9f9;border:1px solid #ddd;border-radius:4px;line-height:1.6">'
         "<strong>Benchmark results summary</strong> &mdash; "
-        f"evaluation dataset: {n:,} spectrograms, prevalence {prev:.4f}"
-        f" (1 call per {1/prev-1:.1f} non-calls).<br>"
+        f"evaluation dataset: <code style='font-size:11px;background:#efefef;padding:1px 5px;border-radius:3px'>{dataset_name}</code> "
+        f"({n:,} spectrograms, prevalence {prev:.4f}; 1 call per {1/prev-1:.1f} non-calls).<br>"
         "Detection probe: full-train logistic regression on frozen embeddings, "
         "grouped date×site train/test split (15% held-out test). "
         "Metrics at realistic prevalence (1:8 resampling).<br><br>"
         f'<table style="border-collapse:collapse;font-size:12px">'
         "<thead><tr>"
-        + _th("Model") + _th("AP ↑") + _th("ROC-AUC ↑") + _th("P@R0.70 ↑")
+        + _th("Model") + _th("AP ↑") + _th("ROC-AUC ↑") + _th("P@R0.70 ↑") + _th("Reference(s)")
         + "</tr></thead><tbody>\n"
         + rows_html
-        + "</tbody></table></div>"
+        + "</tbody></table>"
+        + metric_defs
+        + "</div>"
     )
 
     html = out_path.read_text()

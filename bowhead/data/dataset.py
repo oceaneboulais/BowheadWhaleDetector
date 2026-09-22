@@ -19,6 +19,8 @@ import numpy as np
 import torch
 from torch.utils.data import Dataset
 
+from bowhead.data.freq_warp import log_freq_warp
+
 # Columns the metadata MUST provide. `label` drives the binary task; the rest
 # enable leakage-free grouped splitting and later multiclass / airgun analysis.
 REQUIRED_METADATA_COLUMNS = (
@@ -54,6 +56,14 @@ class SpectrogramDataset(Dataset):
         Restrict the dataset to a subset (e.g. a split's train indices).
     normalize : bool
         Apply per-sample min-max (default True, matching the AE).
+    freq_warp : bool
+        Resample the frequency axis onto a log-spaced (constant-Q-style) grid
+        before normalization (default False; see bowhead/data/freq_warp.py and
+        paper/ml_paper/ml_manuscript.tex's "Future work" section).
+    freq_range_hz : tuple[float, float]
+        Linear frequency band spanned by ``images``' frequency axis, used only
+        when ``freq_warp=True`` (default matches this project's 121x104 SNR
+        spectrograms: 25-500 Hz).
     """
 
     def __init__(
@@ -62,6 +72,8 @@ class SpectrogramDataset(Dataset):
         labels: np.ndarray,
         indices: np.ndarray | None = None,
         normalize: bool = True,
+        freq_warp: bool = False,
+        freq_range_hz: tuple[float, float] = (25.0, 500.0),
     ) -> None:
         if images.ndim == 3:
             images = images[:, None, :, :]  # add channel dim
@@ -73,6 +85,8 @@ class SpectrogramDataset(Dataset):
             np.arange(len(images)) if indices is None else np.asarray(indices)
         )
         self.normalize = normalize
+        self.freq_warp = freq_warp
+        self.freq_range_hz = freq_range_hz
 
     def __len__(self) -> int:
         return len(self.indices)
@@ -80,6 +94,8 @@ class SpectrogramDataset(Dataset):
     def __getitem__(self, i: int) -> tuple[torch.Tensor, int]:
         j = self.indices[i]
         img = self.images[j]
+        if self.freq_warp:
+            img = np.stack([log_freq_warp(ch, *self.freq_range_hz) for ch in img])
         if self.normalize:
             img = np.stack([per_sample_minmax(ch) for ch in img])
         else:

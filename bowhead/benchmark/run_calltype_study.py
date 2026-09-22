@@ -37,9 +37,10 @@ from sklearn.metrics import adjusted_rand_score, normalized_mutual_info_score, s
 
 from bowhead.config import best_device
 from bowhead.data.dataset import per_sample_minmax
+from bowhead.data.freq_warp import log_freq_warp
 from bowhead.data.splits import grouped_split, make_date_site_group
 from bowhead.models.custom_cnn import EncoderClassifier, load_pretrained_encoder
-from bowhead.models.encoder import ConvEncoder
+from bowhead.models.encoder import ConvEncoder, load_ae_encoder
 from bowhead.benchmark.probes.call_type import evaluate_call_type
 from bowhead.benchmark.unsupervised.cluster import fit_clusters, bic_select_gmm
 
@@ -47,20 +48,17 @@ from bowhead.benchmark.unsupervised.cluster import fit_clusters, bic_select_gmm
 # ── encoder loading ──────────────────────────────────────────────────────────
 
 def _load_ae_encoder(ckpt_path: str, device: str) -> ConvEncoder:
+    # Checkpoints from bowhead.train.train_ae store the full AE state dict
+    # under "state_dict" (not "model_state") -- reuse the shared, key-robust
+    # loader instead of assuming one specific checkpoint format.
     ck = torch.load(ckpt_path, map_location=device)
-    enc = ConvEncoder(
-        in_channels=1,
+    return load_ae_encoder(
+        ckpt_path,
+        device=device,
         input_hw=tuple(ck["input_hw"]),
         base_channels=ck["base_channels"],
         latent_dim=ck["latent_dim"],
     ).to(device)
-    state = ck["model_state"]
-    enc_state = {
-        k: v for k, v in state.items() if k.startswith("encoder.") or k.startswith("to_latent.")
-    }
-    missing = enc.load_state_dict(enc_state, strict=True)
-    enc.eval()
-    return enc
 
 
 def _load_cnn_encoder(ckpt_path: str, device: str) -> EncoderClassifier:
@@ -73,11 +71,14 @@ def _load_cnn_encoder(ckpt_path: str, device: str) -> EncoderClassifier:
 
 
 @torch.no_grad()
-def _extract(encoder: nn.Module, images: np.ndarray, device: str, batch: int = 512) -> np.ndarray:
+def _extract(encoder: nn.Module, images: np.ndarray, device: str, batch: int = 512,
+             freq_warp: bool = False) -> np.ndarray:
     """Return (N, D) float32 embeddings from any of the three encoder types."""
     out = []
     for start in range(0, len(images), batch):
         chunk = images[start : start + batch]
+        if freq_warp:
+            chunk = np.stack([log_freq_warp(im) for im in chunk])
         x = np.stack([per_sample_minmax(im) for im in chunk])[:, None].astype(np.float32)
         t = torch.from_numpy(x).to(device)
         z = encoder(t)
@@ -95,6 +96,7 @@ def run(
     out_dir: str,
     device: str,
     seed: int = 0,
+    freq_warp: bool = False,
 ) -> None:
     Path(out_dir).mkdir(parents=True, exist_ok=True)
     if device == "auto":
@@ -132,8 +134,8 @@ def run(
 
     for name, enc in encoders.items():
         print(f"\n== {name} ==")
-        emb_train_pos = _extract(enc, images[train_pos], device)
-        emb_test_pos = _extract(enc, images[test_pos], device)
+        emb_train_pos = _extract(enc, images[train_pos], device, freq_warp=freq_warp)
+        emb_test_pos = _extract(enc, images[test_pos], device, freq_warp=freq_warp)
 
         # 7-way linear probe -----------------------------------------------
         res = evaluate_call_type(
@@ -198,9 +200,12 @@ def _parse_args() -> argparse.Namespace:
     p.add_argument("--out", default="runs/calltype_study")
     p.add_argument("--device", default="auto")
     p.add_argument("--seed", type=int, default=0)
+    p.add_argument("--freq-warp", dest="freq_warp", action="store_true",
+                   help="Apply the constant-Q-style log-frequency warp before extracting "
+                        "embeddings (must match how the encoders were trained)")
     return p.parse_args()
 
 
 if __name__ == "__main__":
     a = _parse_args()
-    run(a.data, a.ae, a.scratch, a.warmstart, a.out, a.device, a.seed)
+    run(a.data, a.ae, a.scratch, a.warmstart, a.out, a.device, a.seed, a.freq_warp)
