@@ -19,6 +19,8 @@ Adam(lr=1e-3). The decoder is NOT needed for classification and is omitted here.
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import torch
 from torch import nn
 
@@ -79,3 +81,43 @@ class ConvEncoder(nn.Module):
         h = self.encoder(x)
         h = torch.flatten(h, 1)
         return self.to_latent(h)
+
+
+def load_ae_encoder(
+    checkpoint_path: str | Path,
+    device: str | torch.device = "cpu",
+    in_channels: int = 1,
+    input_hw: tuple[int, int] = (121, 104),
+    base_channels: int = 32,
+    latent_dim: int = 32,
+) -> ConvEncoder:
+    """Load the encoder half of a full ``ImprovedAutoencoder`` checkpoint.
+
+    The trained checkpoints (e.g. the ``Autoencoder_v13_..._Date20260416-180022``
+    "AutoManual Combined 100K" run used for all current UMAP work) are saved as a
+    flat ``state_dict`` with ``encoder.*`` / ``to_latent.*`` / ``from_latent.*`` /
+    ``decoder.*`` keys — no wrapper dict, no key-prefix remapping needed. Only the
+    ``encoder.*`` and ``to_latent.*`` keys are loaded (``strict=True`` against just
+    those keys), since the decoder/from_latent halves are not needed to produce
+    latent embeddings.
+    """
+    ckpt = torch.load(str(checkpoint_path), map_location="cpu", weights_only=True)
+    if not isinstance(ckpt, dict):
+        raise TypeError(f"Expected a state_dict-like mapping, got {type(ckpt)}")
+    state = ckpt.get("state_dict", ckpt.get("model_state_dict", ckpt.get("model_state", ckpt)))
+
+    model = ConvEncoder(
+        in_channels=in_channels,
+        input_hw=input_hw,
+        base_channels=base_channels,
+        latent_dim=latent_dim,
+    )
+    encoder_keys = set(model.state_dict().keys())
+    filtered = {k: v for k, v in state.items() if k in encoder_keys}
+    missing = encoder_keys - filtered.keys()
+    if missing:
+        raise KeyError(f"Checkpoint {checkpoint_path} is missing encoder keys: {sorted(missing)}")
+    model.load_state_dict(filtered, strict=True)
+    model.to(device)
+    model.eval()
+    return model

@@ -28,6 +28,7 @@ class TrainConfig:
     test_frac: float = 0.15
     input_hw: tuple[int, int] = (121, 104)
     in_channels: int = 1
+    freq_warp: bool = False               # constant-Q-style log-frequency axis warp
 
     # model
     num_classes: int = 2                  # binary call / non-call first
@@ -42,6 +43,7 @@ class TrainConfig:
     batch_size: int = 32
     lr: float = 1e-3
     weight_decay: float = 0.0
+    lr_schedule: str = "none"             # "none" | "cosine" (CosineAnnealingLR over epochs)
     class_weighted_loss: bool = True      # guards against residual imbalance
     early_stop_patience: int = 10         # epochs w/o val-AUC improvement
 

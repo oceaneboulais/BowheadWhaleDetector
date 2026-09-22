@@ -40,6 +40,7 @@ from torch.utils.data import DataLoader, TensorDataset
 from torch.utils.tensorboard import SummaryWriter
 
 from bowhead.config import best_device
+from bowhead.data.freq_warp import log_freq_warp_batch
 from bowhead.data.splits import grouped_split, make_date_site_group
 
 
@@ -152,6 +153,7 @@ def train_ae(
     seed: int = 0,
     device: str = "auto",
     log_dir: str | None = None,
+    freq_warp: bool = False,
 ) -> dict:
     torch.manual_seed(seed)
     np.random.seed(seed)
@@ -169,6 +171,9 @@ def train_ae(
     dates  = npz["date"]
     sites  = npz["site"]
     print(f"  {images.shape}  loaded in {time.time()-t0:.1f}s")
+    if freq_warp:
+        print("  Applying constant-Q-style log-frequency warp ...")
+        images = log_freq_warp_batch(images)
 
     N, H, W = images.shape
 
@@ -316,6 +321,8 @@ def main() -> None:
     p.add_argument("--test-frac",type=float, default=0.10)
     p.add_argument("--device",   default="auto")
     p.add_argument("--seed",     type=int,   default=0)
+    p.add_argument("--freq-warp", dest="freq_warp", action="store_true",
+                   help="Constant-Q-style log-frequency axis warp (see bowhead/data/freq_warp.py)")
     args = p.parse_args()
 
     train_ae(
@@ -329,6 +336,7 @@ def main() -> None:
         patience   = args.patience,
         seed       = args.seed,
         device     = args.device,
+        freq_warp  = args.freq_warp,
     )
 
 

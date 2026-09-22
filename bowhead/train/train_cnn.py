@@ -27,6 +27,7 @@ from sklearn.metrics import roc_auc_score
 
 from bowhead.config import TrainConfig, best_device
 from bowhead.data.dataset import SpectrogramDataset
+from bowhead.data.freq_warp import log_freq_warp_batch
 from bowhead.data.splits import grouped_split, make_date_site_group
 from bowhead.models.custom_cnn import EncoderClassifier, load_pretrained_encoder
 from bowhead.scorers import CNNScorer
@@ -82,8 +83,8 @@ def train_custom_cnn(cfg: TrainConfig) -> dict:
     print("Grouped split (verify 0 overlap):")
     print(split.summary(labels, groups))
 
-    train_ds = SpectrogramDataset(images, labels, split.train)
-    val_ds = SpectrogramDataset(images, labels, split.val)
+    train_ds = SpectrogramDataset(images, labels, split.train, freq_warp=cfg.freq_warp)
+    val_ds = SpectrogramDataset(images, labels, split.val, freq_warp=cfg.freq_warp)
     train_dl = DataLoader(train_ds, batch_size=cfg.batch_size, shuffle=True,
                           num_workers=0, drop_last=True)
     val_dl = DataLoader(val_ds, batch_size=256, shuffle=False, num_workers=0)
@@ -123,6 +124,12 @@ def train_custom_cnn(cfg: TrainConfig) -> dict:
         print("Loss: CrossEntropyLoss")
     params = [p for p in model.parameters() if p.requires_grad]
     optimizer = torch.optim.Adam(params, lr=cfg.lr, weight_decay=cfg.weight_decay)
+    scheduler = None
+    if cfg.lr_schedule == "cosine":
+        scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=cfg.epochs)
+        print(f"LR schedule: cosine (T_max={cfg.epochs})")
+    elif cfg.lr_schedule not in ("none", None):
+        raise ValueError(f"Unknown lr_schedule {cfg.lr_schedule!r}")
 
     if cfg.use_spec_augment:
         print(f"SpecAugment: F={cfg.spec_aug_F}, T={cfg.spec_aug_T}, "
@@ -157,9 +164,13 @@ def train_custom_cnn(cfg: TrainConfig) -> dict:
             running += loss.item() * len(x)
         train_loss = running / len(train_ds)
         auc = _val_auc(model, val_dl, device)
-        print(f"epoch {epoch:3d} | train_loss {train_loss:.4f} | val_auc {auc:.4f}")
+        cur_lr = optimizer.param_groups[0]["lr"]
+        print(f"epoch {epoch:3d} | train_loss {train_loss:.4f} | val_auc {auc:.4f} | lr {cur_lr:.2e}")
         writer.add_scalar("loss/train", train_loss, epoch)
         writer.add_scalar("auc/val", auc, epoch)
+        writer.add_scalar("lr", cur_lr, epoch)
+        if scheduler is not None:
+            scheduler.step()
 
         if auc > best_auc:
             best_auc, best_epoch, since_improve = auc, epoch, 0
@@ -174,6 +185,8 @@ def train_custom_cnn(cfg: TrainConfig) -> dict:
     # --- final test-set evaluation at realistic prevalence -------------- #
     model.load_state_dict(torch.load(out / "best.pt", map_location=device)["state_dict"])
     test_images = images[split.test]
+    if cfg.freq_warp:
+        test_images = log_freq_warp_batch(test_images)
     test_labels = labels[split.test]
     scorer = CNNScorer(model, name=cfg.tag, device=device)
     test_metrics = evaluate_scorer(
@@ -221,7 +234,13 @@ def _parse_args() -> TrainConfig:
     p.add_argument("--epochs", type=int, default=TrainConfig.epochs)
     p.add_argument("--batch-size", type=int, default=TrainConfig.batch_size)
     p.add_argument("--lr", type=float, default=TrainConfig.lr)
+    p.add_argument("--dropout", type=float, default=TrainConfig.dropout)
+    p.add_argument("--weight-decay", dest="weight_decay", type=float, default=TrainConfig.weight_decay)
+    p.add_argument("--lr-schedule", dest="lr_schedule", default=TrainConfig.lr_schedule,
+                   choices=["none", "cosine"])
     p.add_argument("--freeze-encoder", action="store_true")
+    p.add_argument("--freq-warp", dest="freq_warp", action="store_true",
+                   help="Constant-Q-style log-frequency axis warp (see bowhead/data/freq_warp.py)")
     p.add_argument("--device", default=TrainConfig.device)
     p.add_argument("--tag", default=TrainConfig.tag)
     p.add_argument("--seed", type=int, default=TrainConfig.seed)

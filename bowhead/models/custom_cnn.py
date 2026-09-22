@@ -80,8 +80,11 @@ def load_pretrained_encoder(
     ``source_prefix`` strips any wrapper the checkpoint nests the model under
     (e.g. ``"model."``). Returns ``matched`` / ``missing`` / ``unexpected`` keys.
     """
-    ckpt = torch.load(checkpoint_path, map_location=map_location)
-    state = ckpt.get("state_dict", ckpt) if isinstance(ckpt, dict) else ckpt
+    ckpt = torch.load(checkpoint_path, map_location=map_location, weights_only=False)
+    state = (
+        ckpt.get("state_dict", ckpt.get("model_state", ckpt))
+        if isinstance(ckpt, dict) else ckpt
+    )
     if source_prefix:
         state = {
             k[len(source_prefix):]: v

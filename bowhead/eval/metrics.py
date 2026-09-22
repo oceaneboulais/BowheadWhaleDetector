@@ -109,3 +109,33 @@ def resample_to_prevalence(
         idx = np.concatenate([pos_keep, neg])
     rng.shuffle(idx)
     return idx
+
+
+def prior_corrected_probs(
+    p: np.ndarray, train_prior: float, target_prior: float, eps: float = 1e-6
+) -> np.ndarray:
+    """Shift call-probabilities trained under ``train_prior`` to ``target_prior``.
+
+    Standard logit-space prior correction (Saerens et al. 2002):
+        logit_corrected = logit(p) - log(train_prior / (1 - train_prior))
+                                    + log(target_prior / (1 - target_prior))
+
+    Note this is a *monotonic, per-sample-independent* shift of the score, so
+    it cannot change any rank-based metric (ROC-AUC, average precision, PR
+    curve) — it only recalibrates the probabilities/decision threshold. Use it
+    to compare calibration (e.g. Brier score, precision at a fixed threshold),
+    not to look for an AP improvement.
+    """
+    p = np.clip(np.asarray(p, dtype=float), eps, 1 - eps)
+    train_prior = min(max(train_prior, eps), 1 - eps)
+    target_prior = min(max(target_prior, eps), 1 - eps)
+    logit = np.log(p / (1 - p))
+    logit = logit - np.log(train_prior / (1 - train_prior)) + np.log(target_prior / (1 - target_prior))
+    return 1.0 / (1.0 + np.exp(-logit))
+
+
+def brier_score(y_true: np.ndarray, y_prob: np.ndarray) -> float:
+    """Mean squared error between predicted probability and binary label."""
+    y_true = np.asarray(y_true, dtype=float)
+    y_prob = np.asarray(y_prob, dtype=float)
+    return float(np.mean((y_prob - y_true) ** 2))
