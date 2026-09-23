@@ -28,7 +28,7 @@ if contains(hostname,'ishmael')
     GSI_file_dir='/Volumes/Shared-2/Data/';
     code_dir='/Users/thode/Desktop/DeepLearningBowhead/Software_repo/matlab';
     WAV_file_dir='/Volumes/Bowhead4/';
-    Manual_record_files_dir='../../Shell_Manual_Results';
+    Manual_record_files_dir='/Volumes/Thode_AI_Working_Disk/Bowhead_DL_Project/Shell_Manual_Results';
 
 else
     %GSI_file_dir='/Volumes/Bowhead4/Shell_AllChannel_Demo/';

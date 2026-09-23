@@ -15,7 +15,7 @@ DASAR_strings='ABCDEFG';
 GSI_file_dir='/Volumes/Shared/Data/';
 WAV_file_dir='/Volumes/Bowhead4/';
 data_file_type='GSI'; %'GSI' or 'WAV'
-Manual_record_files_dir='../Shell_Manual_Results';
+Manual_record_files_dir='/Volumes/Thode_AI_Working_Disk/Bowhead_DL_Project/Shell_Manual_Results';
 output_dir='../Spectrogram_Image_Database.dir';
 
 
