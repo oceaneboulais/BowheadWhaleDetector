@@ -25,7 +25,7 @@ warning off
 %%%Computer specific information
 [~,hostname]=system('hostname');
 if contains(hostname,'ishmael')
-    GSI_file_dir='/Volumes/Shared-2/Data/';
+    GSI_file_dir='/Volumes/Shared-1/Data/'; %mounted via Jonah3
     code_dir='/Users/thode/Desktop/DeepLearningBowhead/Software_repo/matlab';
     WAV_file_dir='/Volumes/Bowhead4/';
     Manual_record_files_dir='/Volumes/Thode_AI_Working_Disk/Bowhead_DL_Project/Shell_Manual_Results';

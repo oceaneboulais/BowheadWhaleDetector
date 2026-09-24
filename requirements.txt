@@ -11,3 +11,10 @@ tensorboard>=2.14        # training dashboard (scalars + hparams)
 #   tensorflow-hub>=0.16
 #   librosa>=0.10           # resampling / 10x speed-up frequency shift
 #   umap-learn>=0.5         # latent-space visualization (matches the paper)
+
+# Optional, only needed for bowhead/manual_miss_rate (Python port of the MATLAB
+# manual/automated overlap-matching pipeline, matlab/matlab/master_compute_manual_miss_rate.m):
+#   scipy>=1.11
+#   numba>=0.58             # strongly recommended -- JIT-compiles the CFAR detector's
+#                            # per-sample state machine; without it the same code runs
+#                            # correctly but far slower in pure Python.
