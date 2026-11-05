@@ -45,7 +45,11 @@ class TrainConfig:
     weight_decay: float = 0.0
     lr_schedule: str = "none"             # "none" | "cosine" (CosineAnnealingLR over epochs)
     class_weighted_loss: bool = True      # guards against residual imbalance
-    early_stop_patience: int = 10         # epochs w/o val-AUC improvement
+    early_stop_patience: int = 10         # epochs w/o checkpoint-metric improvement
+    checkpoint_metric: str = "average_precision"  # "average_precision" | "roc_auc";
+    # AP is preferred for checkpoint selection under class imbalance since
+    # ROC-AUC is prevalence-invariant and can under-penalize poor detection
+    # quality at our realistic (~1:9) deployment prevalence.
 
     # augmentation (Tier-1 AP boosters)
     use_spec_augment: bool = False        # SpecAugment freq+time masking

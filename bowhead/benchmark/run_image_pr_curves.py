@@ -10,9 +10,19 @@ full-train detection probes, and plots PR + FDR-vs-miss curves for:
   - EfficientNet-B0  (ImageNet, 1280-D, local)
   - AST-style ViT  (ImageNet-21k, 768-D, local — requires timm)
 
+By default, labels are derived from each file's \`_Type{N}\` suffix in its
+filename (0 = non-call, else call) -- this matches the ORIGINAL (pre-review)
+label convention. Pass \`--eval-mat\` (a MATLAB eval export with
+\`original_filenames\`/\`features.iscall\`/\`features.type_org\`, same format as
+\`bowhead.eval.run_scratch_relabel_curves\`) to instead score against the
+manually reviewed (post-review) labels via \`--label-set reviewed\` (default
+when \`--eval-mat\` is given), so these backbones can be compared on the same
+label set as the other CNN-family detectors.
+
 Usage:
     PYTHONPATH=. python -m bowhead.benchmark.run_image_pr_curves \\
         --eval-dir /path/to/Evaluation_200K.dir \\
+        --eval-mat /path/to/latent_embeddings_3d_eval_8to1_MATLAB_combined_102126.mat \\
         --out-html docs/benchmark_pr_curves.html
 """
 
@@ -30,6 +40,7 @@ from bowhead.config import best_device
 from bowhead.data.dataset import per_sample_minmax
 from bowhead.data.splits import grouped_split
 from bowhead.eval.metrics import score_predictions
+from bowhead.eval.relabel_panel_common import downsample_curve
 from bowhead.benchmark.probes.detection import full_train_detection
 
 _REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -69,15 +80,57 @@ def _scan_dir(eval_dir: Path):
     return paths, np.array(labels, np.int64), np.array(dates), np.array(sites)
 
 
-def _load_images(paths: list[Path], indices: np.ndarray) -> np.ndarray:
-    """Load SNR_gram images for the given index subset."""
+def _load_mat_labels(eval_mat: Path) -> dict[str, tuple[int, int]]:
+    """Map filename -> (reviewed_label, original_label) from a MATLAB eval
+    export (same \`original_filenames\`/\`features.iscall\`/\`features.type_org\`
+    fields used by \`bowhead.eval.run_scratch_relabel_curves._load_eval_labels\`).
+    """
+    from scipy.io import loadmat as _loadmat
+    d = _loadmat(str(eval_mat), squeeze_me=True, struct_as_record=False)
+    feat = d["features"]
+    type_org = np.asarray(feat.type_org).astype(int)
+    reviewed = np.asarray(feat.iscall).astype(int)
+    original = (type_org > 0).astype(int)
+    filenames = np.asarray(d["original_filenames"])
+    return {str(f): (int(r), int(o)) for f, r, o in zip(filenames, reviewed, original)}
+
+
+def _apply_mat_labels(paths: list[Path], labels: np.ndarray, eval_mat: Path,
+                       label_set: str) -> np.ndarray:
+    """Override filename-derived labels with the MATLAB export's label set,
+    for whichever files are present in the export (falls back to the
+    filename-derived label for any file not found in the export)."""
+    label_map = _load_mat_labels(eval_mat)
+    idx = 0 if label_set == "reviewed" else 1
+    out = labels.copy()
+    n_matched = 0
+    for i, p in enumerate(paths):
+        pair = label_map.get(p.name)
+        if pair is not None:
+            out[i] = pair[idx]
+            n_matched += 1
+    print(f"  Matched {n_matched:,}/{len(paths):,} files to eval-mat "
+          f"'{label_set}' labels ({len(paths) - n_matched:,} kept filename-derived fallback)")
+    return out
+
+
+def _load_images(paths: list[Path], indices: np.ndarray, tag: str = "") -> np.ndarray:
+    """Load SNR_gram images for the given index subset, with progress logging
+    (loading is a sequential per-file disk read, which can be slow on an
+    external drive, so we print rate/ETA rather than loading silently)."""
     imgs = []
-    for i in indices:
+    t0 = time.time()
+    n = len(indices)
+    for j, i in enumerate(indices):
         try:
             arr = loadmat(str(paths[i]))[GRAM].astype(np.float32)
         except Exception:
             arr = np.zeros((121, 104), dtype=np.float32)
         imgs.append(arr)
+        if (j + 1) % 500 == 0 or j + 1 == n:
+            rate = (j + 1) / max(time.time() - t0, 1e-6)
+            eta = (n - j - 1) / max(rate, 1e-6) / 60
+            print(f"    [{tag}] {j + 1:,}/{n:,}  ({rate:.0f}/s  ETA {eta:.1f} min)")
     return np.stack(imgs)   # (N, H, W)
 
 
@@ -114,10 +167,11 @@ def _build_html(curves: dict, n: int, prev: float, out_path: Path) -> None:
     for name, m in curves.items():
         col = COLORS.get(name, "#555555")
         label = f"{name.replace('_', ' ').title()}  (AP={m.average_precision:.3f})"
-        fig.add_trace(go.Scatter(x=m.pr_recall, y=m.pr_precision, mode="lines",
+        prec, rec = downsample_curve(np.asarray(m.pr_precision), np.asarray(m.pr_recall))
+        fig.add_trace(go.Scatter(x=rec, y=prec, mode="lines",
                                  name=label,
                                  line=dict(color=col, width=2)), row=1, col=1)
-        fig.add_trace(go.Scatter(x=1-m.pr_recall, y=1-m.pr_precision, mode="lines",
+        fig.add_trace(go.Scatter(x=1-rec, y=1-prec, mode="lines",
                                  name=label, showlegend=False,
                                  line=dict(color=col, width=2)), row=1, col=2)
 
@@ -159,7 +213,7 @@ def _build_html(curves: dict, n: int, prev: float, out_path: Path) -> None:
     )
 
     out_path.parent.mkdir(parents=True, exist_ok=True)
-    fig.write_html(str(out_path), include_plotlyjs=True, full_html=True)
+    fig_html = fig.to_html(full_html=False, include_plotlyjs=False)
 
     # summary table panel
     model_refs = {
@@ -238,8 +292,27 @@ def _build_html(curves: dict, n: int, prev: float, out_path: Path) -> None:
         + "</div>"
     )
 
-    html = out_path.read_text()
-    html = html.replace("</body>", panel + "\n</body>")
+    # Inserted non-destructively, keyed off a stable marker, so re-running this
+    # script never clobbers OTHER panels appended into the same dashboard file
+    # (relabel ablations, CNN-family comparison, etc.) -- see
+    # docs/benchmark_pr_curves.html gotchas in repo memory.
+    marker = '<div id="frozen-embedding-benchmark-marker" style="display:none"></div>'
+    section = marker + fig_html + panel
+
+    if out_path.exists():
+        html = out_path.read_text()
+        marker_idx = html.find(marker)
+        if marker_idx != -1:
+            html = html[:marker_idx]
+        else:
+            body_idx = html.find("</body>")
+            html = html[:body_idx] if body_idx != -1 else html
+    else:
+        import plotly.io as pio
+        plotlyjs_bundle = f"<script>{pio.get_plotlyjs()}</script>"
+        html = f"<html><head><meta charset='utf-8'>{plotlyjs_bundle}</head><body>\n"
+
+    html = html.rstrip() + "\n" + section + "\n</body>\n</html>\n"
     out_path.write_text(html)
     print(f"Written {out_path}")
 
@@ -252,6 +325,11 @@ def run(
     cnn_npz: Path | None = None,
     backbones: list[str] | None = None,
     device: str | None = None,
+    eval_mat: Path | None = None,
+    label_set: str = "reviewed",
+    max_train: int | None = None,
+    max_test: int | None = None,
+    out_json: Path | None = None,
 ) -> None:
     device = device or best_device()
     backbones = backbones or ["resnet18", "efficientnet_b0"]
@@ -260,6 +338,9 @@ def run(
     # 1. Scan directory
     print(f"\nScanning {eval_dir.name} ...")
     paths, labels, dates, sites = _scan_dir(eval_dir)
+    if eval_mat is not None:
+        print(f"\nOverriding labels from {eval_mat.name} (label_set={label_set}) ...")
+        labels = _apply_mat_labels(paths, labels, eval_mat, label_set)
     n = len(paths)
     prev = float(labels.mean())
     print(f"  {n:,} files | {int(labels.sum()):,} calls | "
@@ -270,16 +351,25 @@ def run(
     split = grouped_split(labels, groups, val_frac=0.10, test_frac=0.15, seed=0)
     print(split.summary(labels, groups))
 
+    train_idx, test_idx = split.train, split.test
+    rng = np.random.default_rng(0)
+    if max_train is not None and len(train_idx) > max_train:
+        train_idx = rng.choice(train_idx, size=max_train, replace=False)
+        print(f"  Subsampled train split to {max_train:,} (from {len(split.train):,})")
+    if max_test is not None and len(test_idx) > max_test:
+        test_idx = rng.choice(test_idx, size=max_test, replace=False)
+        print(f"  Subsampled test split to {max_test:,} (from {len(split.test):,})")
+
     # 3. Load images for train + test subsets
     print("\nLoading train images ...")
-    train_imgs = _load_images(paths, split.train)
+    train_imgs = _load_images(paths, train_idx, tag="train")
     print(f"  train: {train_imgs.shape}")
     print("Loading test images ...")
-    test_imgs  = _load_images(paths, split.test)
+    test_imgs  = _load_images(paths, test_idx, tag="test")
     print(f"  test:  {test_imgs.shape}")
 
-    train_labels = labels[split.train]
-    test_labels  = labels[split.test]
+    train_labels = labels[train_idx]
+    test_labels  = labels[test_idx]
 
     curves: dict = {}
 
@@ -335,6 +425,23 @@ def run(
     print("\nBuilding HTML ...")
     _build_html(curves, n, prev, out_html)
 
+    # 7. Optional: save per-model metrics/curves as JSON for downstream plotting
+    if out_json is not None:
+        import json
+        payload = {
+            name: dict(
+                average_precision=m.average_precision, roc_auc=m.roc_auc,
+                prevalence=m.prevalence, n=m.n,
+                precision_at_recall_0_70=m.precision_at_recall(0.70),
+                pr_precision=np.asarray(m.pr_precision).tolist(),
+                pr_recall=np.asarray(m.pr_recall).tolist(),
+            )
+            for name, m in curves.items()
+        }
+        out_json.parent.mkdir(parents=True, exist_ok=True)
+        out_json.write_text(json.dumps(payload, indent=2))
+        print(f"Written {out_json}")
+
 
 def _parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(description=__doc__,
@@ -348,6 +455,17 @@ def _parse_args() -> argparse.Namespace:
                    default=["resnet18", "efficientnet_b0"],
                    help="Image backbones to run (add 'ast_imagenet' if timm installed)")
     p.add_argument("--device", default=None)
+    p.add_argument("--eval-mat", type=Path, default=None,
+                   help="MATLAB eval export (original_filenames/features.iscall/"
+                        "features.type_org) to override filename-derived labels")
+    p.add_argument("--label-set", choices=["reviewed", "original"], default="reviewed",
+                   help="Which label set to use from --eval-mat (default: reviewed)")
+    p.add_argument("--max-train", type=int, default=None,
+                   help="Cap the number of train-split images loaded (random subsample)")
+    p.add_argument("--max-test", type=int, default=None,
+                   help="Cap the number of test-split images loaded (random subsample)")
+    p.add_argument("--out-json", type=Path, default=None,
+                   help="Optional path to save per-model metrics/curves as JSON")
     return p.parse_args()
 
 
@@ -359,4 +477,9 @@ if __name__ == "__main__":
         cnn_npz=args.cnn_npz,
         backbones=args.backbones,
         device=args.device,
+        eval_mat=args.eval_mat,
+        label_set=args.label_set,
+        max_train=args.max_train,
+        max_test=args.max_test,
+        out_json=args.out_json,
     )

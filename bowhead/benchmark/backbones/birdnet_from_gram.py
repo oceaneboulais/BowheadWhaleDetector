@@ -1,4 +1,6 @@
-"""BirdNET / Perch 2.0 frozen embeddings reconstructed from ``.mat`` SNR-grams.
+"""BirdNET / Perch 2.0 frozen embeddings reconstructed from ``.mat`` SNR-grams,
+and the shared ``_PerchFamilyFromGramBackbone`` Griffin-Lim front-end reused
+by ``bowhead.benchmark.backbones.surfperch_from_gram`` for SurfPerch.
 
 The public TF-Hub model (``google/bird-vocalization-classifier/4``, what this
 repo calls "birdnet") exposes exactly ONE signature:
@@ -33,10 +35,14 @@ _TARGET_SR = 32_000
 _TARGET_SAMPLES = 5 * _TARGET_SR  # 160,000
 
 
-class BirdNetFromGramBackbone:
-    """Reconstructs audio from SNR-grams and embeds it with the real BirdNET model."""
+class _PerchFamilyFromGramBackbone:
+    """Shared Griffin-Lim audio-reconstruction front-end for the Perch/BirdNET
+    family of TF-Hub bioacoustic embedders (identical 32 kHz / 5-s waveform
+    input contract). Subclasses only need to set ``name``, ``embed_dim``, and
+    implement ``_load_model`` / ``_infer_batch``.
+    """
 
-    name = "birdnet"
+    name = "perch_family"
     embed_dim = 1280
 
     def __init__(
@@ -48,8 +54,6 @@ class BirdNetFromGramBackbone:
         image_scale_factor: float = 5.0,
         griffinlim_iters: int = 32,
     ) -> None:
-        import tensorflow_hub as hub  # lazy import: heavy optional dependency
-
         self.fs = fs
         self.nfft = nfft
         self.hop = int(round((1.0 - ovlap) * nfft))
@@ -59,10 +63,13 @@ class BirdNetFromGramBackbone:
         self.n_full_bins = nfft // 2 + 1  # 129 for nfft=256
         self.df = fs / nfft
         self._bin_offset = int(round(freq_offset_hz / self.df))
+        self._load_model()
 
-        print(f"Loading BirdNET from {_BIRDNET_URL} (first call may download) ...")
-        self._model = hub.load(_BIRDNET_URL)
-        self._infer = self._model.signatures["serving_default"]
+    def _load_model(self) -> None:
+        raise NotImplementedError
+
+    def _infer_batch(self, waveforms: np.ndarray) -> np.ndarray:
+        raise NotImplementedError
 
     def _reconstruct_waveform(self, gram_uint8: np.ndarray) -> np.ndarray:
         import librosa
@@ -97,9 +104,26 @@ class BirdNetFromGramBackbone:
         return y.astype(np.float32)
 
     def embed(self, images: np.ndarray) -> np.ndarray:
-        """images: (N, H, W) raw uint8 SNR-grams -> (N, 1280) embeddings."""
+        """images: (N, H, W) raw uint8 SNR-grams -> (N, embed_dim) embeddings."""
         if images.ndim == 4:
             images = images[:, 0, :, :]
         waveforms = np.stack([self._reconstruct_waveform(g) for g in images])
-        out = self._infer(inputs=waveforms.astype(np.float32))
+        return self._infer_batch(waveforms.astype(np.float32))
+
+
+class BirdNetFromGramBackbone(_PerchFamilyFromGramBackbone):
+    """Reconstructs audio from SNR-grams and embeds it with the real BirdNET model."""
+
+    name = "birdnet"
+    embed_dim = 1280
+
+    def _load_model(self) -> None:
+        import tensorflow_hub as hub  # lazy import: heavy optional dependency
+
+        print(f"Loading BirdNET from {_BIRDNET_URL} (first call may download) ...")
+        self._model = hub.load(_BIRDNET_URL)
+        self._infer = self._model.signatures["serving_default"]
+
+    def _infer_batch(self, waveforms: np.ndarray) -> np.ndarray:
+        out = self._infer(inputs=waveforms)
         return out["output_1"].numpy()

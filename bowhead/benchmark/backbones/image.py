@@ -70,7 +70,7 @@ class ImageBackbone:
         self.device = device
 
     @torch.no_grad()
-    def embed(self, images: np.ndarray, batch_size: int = 256) -> np.ndarray:
+    def embed(self, images: np.ndarray, batch_size: int = 64) -> np.ndarray:
         """(N, H, W) uint8 → (N, D) float32 embeddings."""
         all_embs = []
         for start in range(0, len(images), batch_size):
@@ -80,6 +80,10 @@ class ImageBackbone:
             if emb.ndim == 3:
                 emb = emb[:, 0, :]
             all_embs.append(emb.cpu().numpy())
+            del batch, emb
+            # Avoid unbounded MPS caching-allocator growth -> host swap thrashing.
+            if self.device == "mps" and torch.backends.mps.is_available():
+                torch.mps.empty_cache()
         return np.concatenate(all_embs, axis=0)
 
 

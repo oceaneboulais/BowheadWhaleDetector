@@ -73,23 +73,33 @@ def _score_model(
     labels: np.ndarray,
     device: str,
     grams: tuple[str, ...] = GRAMS_1CH,
-) -> np.ndarray:
-    """Stream .mat files in batches; return call-probability array shape (N,)."""
+    return_mask: bool = False,
+) -> np.ndarray | tuple[np.ndarray, np.ndarray]:
+    """Stream .mat files in batches; return call-probability array shape (N,).
+
+    Files that fail to load are scored on an all-zero placeholder image (so
+    every index in the returned array stays aligned with *mat_paths*), but
+    that placeholder score is meaningless. If *return_mask* is True, also
+    return a boolean array marking which samples loaded successfully, so
+    callers can exclude the placeholder rows from metrics/curves.
+    """
     n = len(mat_paths)
     n_ch = len(grams)
     probs = np.empty(n, dtype=np.float32)
+    ok = np.ones(n, dtype=bool)
     t0 = time.time()
 
     for start in range(0, n, BATCH_SIZE):
         end = min(start + BATCH_SIZE, n)
         batch_imgs = []
-        for path in mat_paths[start:end]:
+        for i, path in enumerate(mat_paths[start:end]):
             try:
                 m = loadmat(str(path))
                 channels = [per_sample_minmax(m[g].astype(np.float32)) for g in grams]
             except Exception as e:
                 print(f"  WARN: could not read {path.name}: {e}; using zeros")
                 channels = [np.zeros((121, 104), dtype=np.float32)] * n_ch
+                ok[start + i] = False
             batch_imgs.append(np.stack(channels, axis=0))  # (C, H, W)
 
         x = torch.from_numpy(np.stack(batch_imgs)).to(device)  # (B, C, H, W)
@@ -100,6 +110,12 @@ def _score_model(
             eta = (n - end) / rate / 60 if rate > 0 else 0
             print(f"  {end:>7,}/{n:,}  ({rate:.0f}/s  ETA {eta:.1f} min)")
 
+    if return_mask:
+        n_bad = int((~ok).sum())
+        if n_bad:
+            print(f"  {n_bad:,}/{n:,} files failed to load ({n_bad / n:.2%}); "
+                  f"excluded from metrics via return_mask")
+        return probs, ok
     return probs
 
 
@@ -301,7 +317,7 @@ def run_npz(
                        "model_names": np.array(list(all_metrics.keys())),
                        "file_site": sites, "file_year": years,
                        "file_dasar": dasars, "file_label": labels,
-                       "call_type\": call_types,
+                       "call_type": call_types,
                        "dataset_label": np.array(str(data_npz.resolve()))}
     for name, m in all_metrics.items():
         key = name.replace(" ", "_")

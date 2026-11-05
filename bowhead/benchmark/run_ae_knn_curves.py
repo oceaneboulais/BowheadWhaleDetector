@@ -199,7 +199,11 @@ def main() -> None:
         "conditions": {},
     }
     for name, label_source, min_dur in CONDITIONS:
-        scorer = AEKNNScorer(train, k=args.k, label_source=label_source, min_duration=min_dur)
+        # Duration filter gates which EVAL candidates get scored, not which
+        # training examples can vote -- the kNN reference pool should stay at
+        # full breadth (all durations) so the >=0.5s conditions aren't
+        # artificially starved of valid neighbor votes.
+        scorer = AEKNNScorer(train, k=args.k, label_source=label_source, min_duration=None)
         y_score = scorer.score_embeddings(ev["latent"])
         y_true = ev["iscall"] if label_source == "cleaned" else ev["iscall_original"]
 
@@ -242,6 +246,7 @@ def _plot(curves: dict, out_png: str, k: int,
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
     from matplotlib.ticker import AutoMinorLocator
+    plt.rcParams.update({"font.family": "serif", "mathtext.fontset": "cm"})
 
     fig, (ax_pr, ax_md) = plt.subplots(1, 2, figsize=(13, 5.5))
 
@@ -249,32 +254,30 @@ def _plot(curves: dict, out_png: str, k: int,
     for name, (thr, miss, fdr, _fp_per_tp, n) in curves.items():
         recall = 1.0 - miss
         precision = 1.0 - fdr
-        ax_pr.plot(recall, precision, color=COLORS[name], lw=2, label=f"{name}  (n={n:,})")
-        ax_pr.scatter(recall, precision, c=thr, cmap="viridis", s=8, zorder=3)
-
-        ax_md.plot(miss, fdr, color=COLORS[name], lw=2)
-        sc = ax_md.scatter(miss, fdr, c=thr, cmap="viridis", s=8, zorder=3)
-
-        if mark_miss is not None:
-            i = int(np.argmin(np.abs(miss - mark_miss)))
-            ax_pr.scatter([recall[i]], [precision[i]], marker="D", s=55,
-                          facecolor="none", edgecolor=COLORS[name], linewidth=1.8, zorder=4)
-            ax_md.scatter([miss[i]], [fdr[i]], marker="D", s=55,
-                          facecolor="none", edgecolor=COLORS[name], linewidth=1.8, zorder=4)
+        ax_pr.plot(recall, precision, color=COLORS[name], lw=0.8, label=f"{name}  (n={n:,})")
+        ax_pr.scatter(recall, precision, c=thr, cmap="viridis", s=3, zorder=3)
+        ax_md.plot(miss, fdr, color=COLORS[name], lw=0.8)
+        sc = ax_md.scatter(miss, fdr, c=thr, cmap="viridis", s=3, zorder=3)
 
     if old_2010_curve is not None:
         old_xgrid, old_fdr = old_2010_curve
-        ax_pr.plot(1.0 - old_xgrid, 1.0 - old_fdr, "--", color="black", lw=2, zorder=2,
+        ax_pr.plot(1.0 - old_xgrid, 1.0 - old_fdr, "--", color="black", lw=1.0, zorder=2,
                    label="Original 2010 network (Thode et al. 2012)")
-        ax_md.plot(old_xgrid, old_fdr, "--", color="black", lw=2, zorder=2)
+        ax_md.plot(old_xgrid, old_fdr, "--", color="black", lw=1.0, zorder=2)
+
+    # Explicit tick at 0.1 (in addition to the usual 0.2 spacing) so the
+    # matched-miss-fraction operating point can be read directly off the axes.
+    _ticks = sorted(set(np.round(np.arange(0, 1.01, 0.1), 2)))
 
     ax_pr.set_xlabel("Recall")
     ax_pr.set_ylabel("Precision")
     ax_pr.set_xlim(0, 1)
     ax_pr.set_ylim(0, 1)
+    ax_pr.set_xticks(_ticks)
+    ax_pr.set_yticks(_ticks)
     ax_pr.set_title("a) Recall vs. precision")
     ax_pr.text(0.05, 0.95, "a)", fontweight="bold", fontsize=12, transform=ax_pr.transAxes)
-    ax_pr.legend(fontsize=7, loc="lower left")
+    ax_pr.legend(fontsize=8, loc="lower left")
     ax_pr.grid(True, alpha=0.3)
     ax_pr.xaxis.set_minor_locator(AutoMinorLocator())
     ax_pr.yaxis.set_minor_locator(AutoMinorLocator())
@@ -285,6 +288,8 @@ def _plot(curves: dict, out_png: str, k: int,
     ax_md.set_ylabel("False discovery rate (1 − precision)")
     ax_md.set_xlim(0, 1)
     ax_md.set_ylim(0, 1)
+    ax_md.set_xticks(_ticks)
+    ax_md.set_yticks(_ticks)
     ax_md.set_title("b) Miss fraction vs. false discovery rate")
     ax_md.text(0.05, 0.95, "b)", fontweight="bold", fontsize=12, transform=ax_md.transAxes)
     ax_md.grid(True, alpha=0.3)

@@ -2,8 +2,9 @@
 
 Pipeline:
     load data -> grouped split -> (optional) warm-start encoder ->
-    train w/ early stopping on val ROC-AUC -> evaluate on the held-out test set
-    at realistic prevalence.
+    train w/ early stopping on val average precision (configurable via
+    --checkpoint-metric) -> evaluate on the held-out test set at realistic
+    prevalence.
 
 Run:
     python -m bowhead.train.train_cnn --data data/spectrograms.npz \
@@ -23,7 +24,7 @@ import torch
 from torch import nn
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
-from sklearn.metrics import roc_auc_score
+from sklearn.metrics import roc_auc_score, average_precision_score
 
 from bowhead.config import TrainConfig, best_device
 from bowhead.data.dataset import SpectrogramDataset
@@ -45,14 +46,20 @@ def _build_groups(metadata: dict, group_col: str) -> np.ndarray:
 
 
 @torch.no_grad()
-def _val_auc(model: EncoderClassifier, loader: DataLoader, device: str) -> float:
+def _val_metric(model: EncoderClassifier, loader: DataLoader, device: str,
+                 metric: str = "average_precision") -> float:
     model.eval()
     scores, labels = [], []
     for x, y in loader:
         p = model.predict_proba(x.to(device)).cpu().numpy()
         scores.append(p)
         labels.append(y.numpy())
-    return float(roc_auc_score(np.concatenate(labels), np.concatenate(scores)))
+    y_true, y_score = np.concatenate(labels), np.concatenate(scores)
+    if metric == "roc_auc":
+        return float(roc_auc_score(y_true, y_score))
+    if metric == "average_precision":
+        return float(average_precision_score(y_true, y_score))
+    raise ValueError(f"Unknown checkpoint_metric {metric!r}")
 
 
 def train_custom_cnn(cfg: TrainConfig) -> dict:
@@ -137,7 +144,8 @@ def train_custom_cnn(cfg: TrainConfig) -> dict:
     if cfg.use_mixup:
         print(f"Mixup: alpha={cfg.mixup_alpha}")
 
-    # --- training loop w/ early stopping on val AUC --------------------- #
+    # --- training loop w/ early stopping on the configured val metric --- #
+    print(f"Checkpoint-selection / early-stop metric: {cfg.checkpoint_metric}")
     best_auc, best_epoch, since_improve = -1.0, -1, 0
     for epoch in range(cfg.epochs):
         model.train()
@@ -163,11 +171,12 @@ def train_custom_cnn(cfg: TrainConfig) -> dict:
             optimizer.step()
             running += loss.item() * len(x)
         train_loss = running / len(train_ds)
-        auc = _val_auc(model, val_dl, device)
+        auc = _val_metric(model, val_dl, device, metric=cfg.checkpoint_metric)
         cur_lr = optimizer.param_groups[0]["lr"]
-        print(f"epoch {epoch:3d} | train_loss {train_loss:.4f} | val_auc {auc:.4f} | lr {cur_lr:.2e}")
+        print(f"epoch {epoch:3d} | train_loss {train_loss:.4f} | "
+              f"val_{cfg.checkpoint_metric} {auc:.4f} | lr {cur_lr:.2e}")
         writer.add_scalar("loss/train", train_loss, epoch)
-        writer.add_scalar("auc/val", auc, epoch)
+        writer.add_scalar(f"{cfg.checkpoint_metric}/val", auc, epoch)
         writer.add_scalar("lr", cur_lr, epoch)
         if scheduler is not None:
             scheduler.step()
@@ -175,7 +184,8 @@ def train_custom_cnn(cfg: TrainConfig) -> dict:
         if auc > best_auc:
             best_auc, best_epoch, since_improve = auc, epoch, 0
             torch.save({"state_dict": model.state_dict(), "cfg": vars(cfg),
-                        "val_auc": auc, "epoch": epoch}, out / "best.pt")
+                        "val_metric": auc, "checkpoint_metric": cfg.checkpoint_metric,
+                        "epoch": epoch}, out / "best.pt")
         else:
             since_improve += 1
             if since_improve >= cfg.early_stop_patience:
@@ -207,8 +217,9 @@ def train_custom_cnn(cfg: TrainConfig) -> dict:
         {"tag": cfg.tag, "warm_start": bool(cfg.warm_start_ckpt),
          "freeze_encoder": cfg.freeze_encoder, "lr": cfg.lr,
          "batch_size": cfg.batch_size, "latent_dim": cfg.latent_dim,
-         "group_col": cfg.group_col, "seed": cfg.seed},
-        {"hparam/best_val_auc": best_auc,
+         "group_col": cfg.group_col, "seed": cfg.seed,
+         "checkpoint_metric": cfg.checkpoint_metric},
+        {"hparam/best_val_metric": best_auc,
          "hparam/test_roc_auc": test_scalars.get("roc_auc", float("nan")),
          "hparam/test_avg_precision": test_scalars.get("average_precision", float("nan")),
          "hparam/test_precision_at_recall_0.70": p_at_r70},
@@ -217,7 +228,8 @@ def train_custom_cnn(cfg: TrainConfig) -> dict:
 
     summary = {
         "tag": cfg.tag,
-        "best_val_auc": best_auc,
+        "checkpoint_metric": cfg.checkpoint_metric,
+        "best_val_metric": best_auc,
         "best_epoch": best_epoch,
         "test": test_metrics.scalar_dict(),
         "test_precision_at_recall_0.70": test_metrics.precision_at_recall(0.70),
@@ -244,6 +256,10 @@ def _parse_args() -> TrainConfig:
     p.add_argument("--device", default=TrainConfig.device)
     p.add_argument("--tag", default=TrainConfig.tag)
     p.add_argument("--seed", type=int, default=TrainConfig.seed)
+    p.add_argument("--checkpoint-metric", dest="checkpoint_metric",
+                   default=TrainConfig.checkpoint_metric,
+                   choices=["average_precision", "roc_auc"],
+                   help="Validation metric used for checkpoint selection / early stopping")
     # augmentation
     p.add_argument("--spec-augment", dest="use_spec_augment", action="store_true")
     p.add_argument("--spec-aug-F", type=int, default=TrainConfig.spec_aug_F)

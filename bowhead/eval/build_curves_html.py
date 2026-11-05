@@ -112,7 +112,7 @@ def build_html(npz_path: Path, out_path: Path, eval_dir: Path | None = None,
     _saved_label = str(d["dataset_label"]) if "dataset_label" in d else None
     dataset_name = dataset_label or _saved_label or (
         "Unsupervised_database_Evaluation_200K_"
-        "8Auto1Manual_ADG_Y08101214_centered_06May2026.dir"
+        "8Auto1Manual_ADG_Y08101214_centered_07Aug2026.dir"
     )
 
     # ── Detect whether this is the new multi-model format or the old 2-model one

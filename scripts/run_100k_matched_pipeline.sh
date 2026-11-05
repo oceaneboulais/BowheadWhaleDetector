@@ -37,7 +37,7 @@ PY="${PY:-/usr/local/bin/python3.8}"   # this interpreter has torch/scipy/sklear
 BCB_ROOT="/Volumes/R3D_2024_1/BowheadDeepLearningMATLAB/BCB_Whale_Datasets"
 AUTO_DIR="$BCB_ROOT/Unsupervised_database_Auto_100K_ADG_Y08101214_centered_16Apr2026.dir"
 MANUAL_DIR="$BCB_ROOT/Unsupervised_database_Manual_100K_ADG_Y08101214_centered_16Apr2026.dir"
-EVAL_DIR="$BCB_ROOT/Unsupervised_database_Evaluation_200K_8Auto1Manual_ADG_Y08101214_centered_06May2026.dir"
+EVAL_DIR="$BCB_ROOT/Unsupervised_database_Evaluation_200K_8Auto1Manual_ADG_Y08101214_centered_07Aug2026.dir"
 
 DATA_OUT="$REPO_ROOT/data/spectrograms_100k_matched.npz"
 AE_OUT_DIR="$REPO_ROOT/runs/ae_100k_matched"

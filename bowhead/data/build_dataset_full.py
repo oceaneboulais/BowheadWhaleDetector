@@ -57,7 +57,7 @@ _PRIORITY_DIRS = [
     ("Manual_100K_Y08101214_centered",               1),   # older, no ADG suffix
     ("AutoWithAirguns_100K_Y08101214_centered",      0),
 ]
-_EVAL_DIR_FRAG = "Evaluation_200K_8Auto1Manual_ADG_Y08101214_centered_06May2026"
+_EVAL_DIR_FRAG = "Evaluation_200K_8Auto1Manual_ADG_Y08101214_centered_07Aug2026"
 
 
 def _find_dir(base: Path, fragment: str) -> Path | None:
