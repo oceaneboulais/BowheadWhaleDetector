@@ -118,10 +118,14 @@ def main() -> None:
         axes[0].plot(m["recall"], m["precision"], color=color, ls=ls, lw=2, label=name)
         axes[1].plot(1 - m["recall"], 1 - m["precision"], color=color, ls=ls, lw=2, label=name)
 
+    tick_locs = np.arange(0.1, 1.01, 0.1)
+
     axes[0].set_xlabel("Recall")
     axes[0].set_ylabel("Precision")
     axes[0].set_xlim(0, 1)
     axes[0].set_ylim(0, 1.02)
+    axes[0].set_xticks(tick_locs)
+    axes[0].set_yticks(tick_locs)
     axes[0].set_title("Precision-Recall")
     axes[0].grid(True, alpha=0.3)
 
@@ -129,6 +133,8 @@ def main() -> None:
     axes[1].set_ylabel("False discovery rate (1 \u2212 precision)")
     axes[1].set_xlim(0, 1)
     axes[1].set_ylim(0, 1.02)
+    axes[1].set_xticks(tick_locs)
+    axes[1].set_yticks(tick_locs)
     axes[1].set_title("FDR vs. Miss Fraction")
     axes[1].grid(True, alpha=0.3)
 
