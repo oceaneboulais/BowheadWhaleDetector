@@ -186,9 +186,13 @@ def extract_verified_clip(
     fmax: float,
     window_s: float,
     freq_tol_hz: float = 15.0,
+    align_to_crop: float | None = None,
 ) -> ExtractedClip | None:
     """Extract ``window_s`` seconds of real audio centered on the event's true
-    (verified) peak time.
+    (verified) peak time -- or, with ``align_to_crop`` (the stored crop's length in
+    seconds), centered on the middle of that crop (filename time plus the same
+    verified/naive correction), so a window longer than the crop leaves equal
+    margin either side and the audio lines up with the spectrogram's time axis.
 
     The naive predicted peak time is ``event.crop_start_walltime + tpeak``. A
     small local search (+/- SEARCH_MARGIN_S) recomputes the dominant frequency
@@ -227,7 +231,10 @@ def extract_verified_clip(
         verified = abs(best_freq - fpeak_hz) <= freq_tol_hz
         true_peak = candidate_peak if verified else naive_peak
 
-    clip = _read_window(event.dasar_dir, true_peak, window_s / 2.0)
+    center = true_peak
+    if align_to_crop:
+        center = event.crop_start_walltime + (true_peak - naive_peak) + dt.timedelta(seconds=align_to_crop / 2.0)
+    clip = _read_window(event.dasar_dir, center, window_s / 2.0)
     if clip is None:
         return None
     clip_audio, clip_start = clip

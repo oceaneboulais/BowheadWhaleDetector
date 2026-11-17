@@ -92,7 +92,7 @@ def _ranges(xyz: np.ndarray, pad: float = 0.25) -> list:
     return [[float(xyz[:, i].min() - pad), float(xyz[:, i].max() + pad)] for i in range(3)]
 
 
-def pack_data(data: dict, atlas: dict) -> dict:
+def pack_data(data: dict, atlas: dict, audio: dict | None = None) -> dict:
     tr_xyz, tr_cd = data["train"]
     ev_xyz, ev_cd = data["eval"]
     packed = {
@@ -130,6 +130,9 @@ def pack_data(data: dict, atlas: dict) -> dict:
         "fp": _b64(F["fpeak"][order], "<f4"),
         "tp": _b64(F["tpeak"][order], "<f4"),
     }
+    if audio:
+        packed["click"]["audio"] = {k: audio[k] for k in ("url", "sr", "n_samples", "per_tile", "flags_b64")}
+        packed["click"]["audio"]["spec_s"] = atlas_mod.DT * atlas_mod.IMG_W   # seconds of audio the spectrogram axis spans
     return packed
 
 
@@ -198,6 +201,13 @@ def build_html() -> str:
                background: linear-gradient(to top, {_viridis_gradient()}); }}
   #uclick-empty {{ display: none; position: absolute; inset: 0; align-items: center; justify-content: center;
                   text-align: center; padding: 16px; color: #555; background: #f2f2f2; border: 1px dashed #aaa; }}
+  #uclick-audio {{ margin: 0 0 8px 46px; font-family: sans-serif; font-size: 13px; color: #222; }}
+  #uclick-audio button, #uclick-audio select {{ font: inherit; padding: 4px 10px; border: 1px solid #888; border-radius: 4px;
+                                              background: #f4f4f4; color: #222; cursor: pointer; margin-right: 6px; }}
+  #uclick-audio button.on {{ background: #222; color: #fff; border-color: #222; }}
+  #uclick-astat {{ margin-top: 5px; font-size: 11px; color: #666; line-height: 1.4; max-width: {W + 100}px; }}
+  #uclick-ph {{ display: none; position: absolute; top: 0; bottom: 0; width: 2px; margin-left: -1px; background: #fff;
+               box-shadow: 0 0 3px #000; pointer-events: none; }}
   #uclick-info td {{ padding: 2px 10px 2px 0; vertical-align: top; }}
   #uclick-info td:first-child {{ color: #666; white-space: nowrap; }}
   #uclick-note {{ margin-top: 10px; font-size: 11px; color: #666; line-height: 1.45; max-width: {W + 130}px; }}
@@ -266,8 +276,16 @@ def build_html() -> str:
         {yt}{xt}
         <span class="tk" style="left:50%;top:100%;margin-top:16px;transform:translateX(-50%)">Time (s)</span>
         <span class="tk" style="left:-46px;top:50%;transform:translate(-50%,-50%) rotate(-90deg);transform-origin:center;margin-left:-14px">Frequency (Hz)</span>
+        <div id="uclick-ph"></div>
         <div id="uclick-cb"></div>{cb}
         <span class="tk" style="left:{W + 12}px;top:-16px">SNR (dB)</span>
+      </div>
+      <div id="uclick-audio" style="display:none">
+        <button id="uclick-play">&#9654; Play</button>
+        <label>Speed <select id="uclick-rate"><option value="1">1&times; (true pitch)</option><option value="2">2&times;</option>
+          <option value="4">4&times;</option><option value="8">8&times;</option></select></label>
+        <button id="uclick-dl" title="Save this clip as a WAV file">Download .wav</button>
+        <div id="uclick-astat"></div>
       </div>
       <table id="uclick-info"><tbody></tbody></table>
       <div id="uclick-note">
@@ -646,11 +664,108 @@ RENDER_JS = r"""
       specEl.style.backgroundSize = (C.cols * C.cell_w * S) + "px " + (C.rows * C.cell_h * S) + "px";
       specEl.style.backgroundPosition = (-c * C.cell_w * S) + "px " + (-r * C.cell_h * S) + "px";
     }
+    /* ---- audio: the real recording behind the spectrogram (tiles served from a separate static site) ---- */
+    var AU = C.audio, audio = (function () {
+      var box = document.getElementById("uclick-audio");
+      if (!AU) return {update: function () {}, stop: function () {}};
+      var playBtn = document.getElementById("uclick-play"), rateSel = document.getElementById("uclick-rate"),
+          dlBtn = document.getElementById("uclick-dl"), stat = document.getElementById("uclick-astat"),
+          ph = document.getElementById("uclick-ph");
+      var flags = new Uint8Array(decode(AU.flags_b64)), UP = 8, OUT_SR = AU.sr * UP, Wpx = C.img_w * S;
+      var ctx = null, src = null, t0 = 0, raf = 0, tiles = {}, curSlot = -1, curName = "clip";
+      function tile(t) {
+        if (!tiles[t]) {
+          tiles[t] = fetch(AU.url + "/tile_" + pad(t, 3) + ".bin").then(function (r) {
+            if (!r.ok) throw new Error("HTTP " + r.status);
+            return r.arrayBuffer();
+          }).then(function (b) { return new Int16Array(b); });
+          tiles[t].catch(function () { delete tiles[t]; });          // allow a retry on the next click
+        }
+        return tiles[t];
+      }
+      function clip(sl) {
+        var k = sl % AU.per_tile;
+        return tile(Math.floor(sl / AU.per_tile)).then(function (a) { return a.subarray(k * AU.n_samples, (k + 1) * AU.n_samples); });
+      }
+      // Browsers cannot play a 1 kHz buffer, so the clip is linearly interpolated to 8 kHz (same pitch and duration).
+      function upsample(x) {
+        var n = x.length, y = new Float32Array(n * UP);
+        for (var i = 0; i < n; i++) {
+          var a = x[i] / 32768, b = (i + 1 < n ? x[i + 1] : x[i]) / 32768;
+          for (var j = 0; j < UP; j++) y[i * UP + j] = a + (b - a) * j / UP;
+        }
+        return y;
+      }
+      function stop() {
+        if (src) { try { src.onended = null; src.stop(); } catch (e) {} src = null; }
+        cancelAnimationFrame(raf); ph.style.display = "none";
+        playBtn.innerHTML = "&#9654; Play"; playBtn.classList.remove("on");
+      }
+      function start(y) {
+        ctx = ctx || new (window.AudioContext || window.webkitAudioContext)();
+        if (ctx.state === "suspended") ctx.resume();
+        var fade = Math.round(0.02 * OUT_SR), z = new Float32Array(y);   // 20 ms fades avoid clicks
+        for (var i = 0; i < fade; i++) { var f = i / fade; z[i] *= f; z[z.length - 1 - i] *= f; }
+        var buf = ctx.createBuffer(1, z.length, OUT_SR); buf.copyToChannel(z, 0);
+        var g = ctx.createGain(); g.gain.value = 0.4;
+        var me = ctx.createBufferSource(), rate = +rateSel.value;
+        me.buffer = buf; me.playbackRate.value = rate; me.connect(g); g.connect(ctx.destination);
+        src = me; me.onended = function () { if (src === me) stop(); };
+        t0 = ctx.currentTime; me.start();
+        playBtn.innerHTML = "&#9632; Stop"; playBtn.classList.add("on");
+        (function tick() {
+          if (src !== me) return;
+          var t = (ctx.currentTime - t0) * rate;          // seconds of recording played so far
+          if (t <= AU.spec_s) { ph.style.display = "block"; ph.style.left = (t / AU.spec_s * Wpx) + "px"; } else ph.style.display = "none";
+          raf = requestAnimationFrame(tick);
+        })();
+      }
+      function say(m) { stat.textContent = m; }
+      playBtn.addEventListener("click", function () {
+        if (src) { stop(); return; }
+        if (curSlot < 0) return;
+        say("Loading audio\u2026");
+        clip(curSlot).then(function (x) { say(note(curSlot)); start(upsample(x)); },
+                           function (e) { say("Audio could not be loaded (" + e.message + ")."); });
+      });
+      rateSel.addEventListener("change", function () {
+        if (src && curSlot >= 0) { stop(); clip(curSlot).then(function (x) { start(upsample(x)); }); }
+      });
+      dlBtn.addEventListener("click", function () {
+        if (curSlot < 0) return;
+        clip(curSlot).then(function (x) {
+          var y = upsample(x), n = y.length, v = new DataView(new ArrayBuffer(44 + 2 * n));
+          function str(o, t) { for (var i = 0; i < t.length; i++) v.setUint8(o + i, t.charCodeAt(i)); }
+          str(0, "RIFF"); v.setUint32(4, 36 + 2 * n, true); str(8, "WAVEfmt "); v.setUint32(16, 16, true);
+          v.setUint16(20, 1, true); v.setUint16(22, 1, true); v.setUint32(24, OUT_SR, true); v.setUint32(28, OUT_SR * 2, true);
+          v.setUint16(32, 2, true); v.setUint16(34, 16, true); str(36, "data"); v.setUint32(40, 2 * n, true);
+          for (var i = 0; i < n; i++) v.setInt16(44 + 2 * i, Math.max(-32768, Math.min(32767, Math.round(y[i] * 32767))), true);
+          var a = document.createElement("a");
+          a.href = URL.createObjectURL(new Blob([v], {type: "audio/wav"})); a.download = curName + ".wav";
+          document.body.appendChild(a); a.click(); a.remove(); setTimeout(function () { URL.revokeObjectURL(a.href); }, 5000);
+        }, function (e) { say("Audio could not be loaded (" + e.message + ")."); });
+      });
+      function note(sl) {
+        return "Real DASAR recording, " + (AU.n_samples / AU.sr).toFixed(1) + " s, played at its true pitch (calls here lie at 25\u2013500 Hz: " +
+          "use headphones, or raise the speed). " + (flags[sl] === 2
+            ? "Aligned to the spectrogram by matching its time profile (about \u00b10.1 s)."
+            : "Weak spectrogram match: alignment is approximate.");
+      }
+      return {
+        stop: stop,
+        update: function (sl, name) {
+          stop(); curSlot = sl; curName = name;
+          if (sl < 0 || !flags[sl]) { box.style.display = "none"; return; }
+          box.style.display = ""; say(note(sl));
+        }
+      };
+    })();
     function row(k, v) { return "<tr><td>" + k + "</td><td>" + v + "</td></tr>"; }
     function select(p) {
       /*@test*/ window.__umapLast = p; /*@/test*/
       var d = String(date[p]), t = pad(time[p], 6), isCD = p >= NOT;
       document.getElementById("uclick-title").textContent = stemOf(p) + ".mat";
+      audio.update(slot[p], stemOf(p));
       if (slot[p] >= 0) {
         emptyEl.style.display = "none"; specEl.style.visibility = "visible"; showSpec(slot[p]);
       } else {
@@ -760,13 +875,13 @@ RENDER_JS = r"""
       gd.on("plotly_relayouting", tools.onRelayout);
       tools.refresh();
     });
-    return {gd: gd, tools: tools, select: select, stemOf: stemOf};
+    return {gd: gd, tools: tools, select: select, stemOf: stemOf, audio: audio};
   }
 
   /* ---- tabs and keyboard ---- */
   function showTab(name) {
     if (name === current) return;
-    [A, B].forEach(function (v) { if (v) v.tools.stopSpin(); });
+    [A, B].forEach(function (v) { if (v) { v.tools.stopSpin(); if (v.audio) v.audio.stop(); } });
     current = name;
     document.querySelectorAll("#umap-modes [data-layout]").forEach(function (b) {
       var l = b.getAttribute("data-layout");
@@ -852,6 +967,10 @@ def main() -> None:
     ap.add_argument("--page", type=Path, required=True, help="Plotly project page to update in place")
     ap.add_argument("--atlas-dir", type=Path, default=None, help=f"tile folder (default: <page dir>/{ATLAS_DIR_NAME})")
     ap.add_argument("--webp-quality", type=int, default=40)
+    ap.add_argument("--audio-dir", type=Path, default=None,
+                    help="folder written by build_umap_audio_tiles (reads its audio.json); enables audio playback")
+    ap.add_argument("--audio-url", default="https://oceaneboulais.github.io/bowhead-umap-audio",
+                    help="public URL the audio tiles are served from (must allow cross-origin reads, as GitHub Pages does)")
     ap.add_argument("--title", default=PAGE_TITLE)
     ap.add_argument("--test-hooks", action="store_true", help="keep the window.__umap* testing hooks (local test builds only)")
     args = ap.parse_args()
@@ -865,7 +984,12 @@ def main() -> None:
         print(f"{k}: {len(xyz):,} points ({int(cd.sum()):,} CD / {int((~cd).sum()):,} OT)")
     print(f"spectrograms: {atlas['n_slots']:,} images in {atlas['n_tiles']} tiles ({atlas['total_bytes'] / 1e6:.1f} MB), "
           f"covering {int((atlas['row_slots'] >= 0).sum()):,} of {len(atlas['row_slots']):,} training rows")
-    splice_into_page(args.page, build_fragment(pack_data(data, atlas), args.test_hooks), args.title)
+    audio = None
+    if args.audio_dir:
+        audio = json.loads((args.audio_dir / "audio.json").read_text())
+        audio["url"] = args.audio_url.rstrip("/")
+        assert audio["n_slots"] == atlas["n_slots"], "audio tiles and spectrogram atlas must use the same slot numbering"
+    splice_into_page(args.page, build_fragment(pack_data(data, atlas, audio), args.test_hooks), args.title)
 
 
 if __name__ == "__main__":
