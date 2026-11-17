@@ -212,7 +212,8 @@ def _new_3d_axes(fig, pos, elev: float, azim: float):
     return ax
 
 
-def plot_training_eval_grid(coords: np.ndarray, label: np.ndarray, split: np.ndarray, out_path: Path) -> None:
+def plot_training_eval_grid(coords: np.ndarray, label: np.ndarray, split: np.ndarray, out_path: Path,
+                            eval_azim_offset: float = 0.0) -> None:
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
@@ -230,7 +231,8 @@ def plot_training_eval_grid(coords: np.ndarray, label: np.ndarray, split: np.nda
     for row, azim in enumerate(azimuths):
         for col, which in enumerate(("train", "eval") if has_eval else ("train",)):
             mask = split == which
-            ax = _new_3d_axes(fig, (3, ncols, row * ncols + col + 1), elev=20, azim=azim)
+            view_azim = azim + (eval_azim_offset if which == "eval" else 0.0)
+            ax = _new_3d_axes(fig, (3, ncols, row * ncols + col + 1), elev=20, azim=view_azim)
             # Okabe-Ito colorblind-safe palette, matching other paper figures.
             for lbl, color, name in ((1, "#D55E00", "Call detection"), (0, "#0072B2", "Other transient")):
                 sel = mask & (label == lbl)

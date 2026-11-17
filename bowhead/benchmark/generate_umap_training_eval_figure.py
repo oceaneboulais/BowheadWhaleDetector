@@ -45,6 +45,9 @@ def main() -> None:
     p.add_argument("--train-mat", type=Path, default=DEFAULT_TRAIN_MAT)
     p.add_argument("--eval-mat", type=Path, default=DEFAULT_EVAL_MAT)
     p.add_argument("--out", type=Path, default=DEFAULT_OUT)
+    p.add_argument("--eval-azim-offset", type=float, default=180.0,
+                   help="Degrees added to the azimuth of every evaluation-column panel "
+                        "(default 180: the evaluation column is viewed from the opposite side).")
     args = p.parse_args()
 
     print(f"Loading training UMAP embeddings from {args.train_mat} ...")
@@ -63,7 +66,7 @@ def main() -> None:
     ])
 
     args.out.parent.mkdir(parents=True, exist_ok=True)
-    plot_training_eval_grid(coords, label, split, args.out)
+    plot_training_eval_grid(coords, label, split, args.out, eval_azim_offset=args.eval_azim_offset)
 
 
 if __name__ == "__main__":

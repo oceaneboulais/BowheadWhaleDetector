@@ -226,6 +226,7 @@ def build_html() -> str:
 </defs></svg>
 <div class="umap-ctl" id="umap-modes">
   <div class="grp"><b>Layout</b>
+    <button data-layout="grid">Paper figure: 3&times;2 plots, rotate each</button>
     <button data-layout="side">Train | Eval side by side</button>
     <button data-layout="combined">All points together</button>
     <button data-layout="click">Click a point &rarr; spectrogram</button></div>
@@ -236,6 +237,9 @@ def build_html() -> str:
     <div class="grp"><b>View</b>
       <button data-view="0">1</button><button data-view="1">2</button><button data-view="2">3</button>
       <button id="umap-spin">&#9654; Spin</button></div>
+    <div class="grp" id="umap-gridgrp" style="display:none"><button id="umap-resetgrid" title="Return all six plots to the views used in the paper figure">Reset to paper views</button></div>
+    <div class="grp" id="umap-linkgrp"><label><input id="umap-link" type="checkbox" checked> Link rotation</label>
+      <button id="umap-evalrot" title="Turn only the evaluation panel 180 degrees">Eval &#8635; 180&deg;</button></div>
     {_zoom_group("umap")}
     <div class="grp"><label>Point size <input id="umap-size" type="range" min="1" max="8" step="0.5" value="3">
       <span id="umap-size-v">3</span></label></div>
@@ -243,7 +247,7 @@ def build_html() -> str:
       <span id="umap-opacity-v">0.5</span></label></div>
   </div>
   <div id="umap-hint" class="umap-hint"></div>
-  <div id="umap-train-eval" class="plotly-graph-div" style="height:820px; width:100%;"></div>
+  <div id="umap-train-eval" class="plotly-graph-div" style="width:100%;"></div>
 </div>
 
 <div id="umap-panel-click" style="display:none">
@@ -314,24 +318,34 @@ RENDER_JS = r"""
     var zoomBusy = false, pendingZ = null, lastReqZ = 1, sliderDown = false;
     var spinning = false, inFlight = false, lastT = 0;
     function el(s) { return document.getElementById(P + "-" + s); }
-    function currentEye() {
-      var l = gd._fullLayout, e = l && l.scene && l.scene.camera && l.scene.camera.eye;
+    function eyeOf(s) {
+      // Prefer the live WebGL camera: after a user drag Plotly only writes it back into the layout lazily,
+      // which matters once the two panels are unlinked and nothing else triggers a relayout.
+      var l = gd._fullLayout, sc = l && l[s] && l[s]._scene, e = null;
+      try { e = sc && sc.getCamera && sc.getCamera().eye; } catch (err) { e = null; }
+      if (!e) e = l && l[s] && l[s].camera && l[s].camera.eye;
       return e ? {x: e.x, y: e.y, z: e.z} : D.views[0].eye;
     }
-    function setEye(e) {
+    function currentEye() { return eyeOf(o.scenes()[0]); }
+    // fn maps each scene's own current eye to its new eye, so panels that have been
+    // rotated independently keep their relative orientation through spin and zoom.
+    function setEyes(fn) {
       var upd = {};
-      o.scenes().forEach(function (s) { upd[s + ".camera.eye"] = e; });
+      o.scenes().forEach(function (s) { upd[s + ".camera.eye"] = fn(eyeOf(s)); });
       return Plotly.relayout(gd, upd);
     }
+    function setEye(e) { return setEyes(function () { return e; }); }
     function zoomOf(e) { return R0 / Math.hypot(e.x, e.y, e.z); }
     function showZoom(z) {
       if (!sliderDown) el("zoom").value = Math.log2(z);
       el("zoom-v").innerHTML = "&times;" + (z >= 10 ? z.toFixed(0) : z.toFixed(1));
     }
     function applyZoom(z) {
-      var e = currentEye(), k = (R0 / z) / Math.hypot(e.x, e.y, e.z);
       showZoom(z);
-      return setEye({x: e.x * k, y: e.y * k, z: e.z * k});
+      return setEyes(function (e) {
+        var k = (R0 / z) / Math.hypot(e.x, e.y, e.z);
+        return {x: e.x * k, y: e.y * k, z: e.z * k};
+      });
     }
     // Applied at once; only if a previous zoom is still running is the newest request queued.
     function requestZoom(z) {
@@ -367,9 +381,9 @@ RENDER_JS = r"""
       var dt = lastT ? Math.min((t - lastT) / 1000, 0.1) : 0;
       lastT = t;
       if (!inFlight && dt > 0) {
-        var e = currentEye(), th = SPIN_DEG_PER_S * Math.PI / 180 * dt, c = Math.cos(th), s = Math.sin(th);
+        var th = SPIN_DEG_PER_S * Math.PI / 180 * dt, c = Math.cos(th), s = Math.sin(th);
         inFlight = true;
-        setEye({x: e.x * c - e.y * s, y: e.x * s + e.y * c, z: e.z}).then(release, release);
+        setEyes(function (e) { return {x: e.x * c - e.y * s, y: e.x * s + e.y * c, z: e.z}; }).then(release, release);
       }
       requestAnimationFrame(frame);
     }
@@ -392,16 +406,24 @@ RENDER_JS = r"""
       zoomBy(Math.exp(-ev.deltaY * unit * k));
     }, {capture: true, passive: false});
 
-    return {currentEye: currentEye, setEye: setEye, refresh: refresh, onRelayout: onRelayout, stopSpin: stopSpin,
+    return {currentEye: currentEye, eyeOf: eyeOf, setEye: setEye, refresh: refresh, onRelayout: onRelayout, stopSpin: stopSpin,
             zoomBy: zoomBy, requestZoom: requestZoom, setBusy: function (b) { inFlight = b; }};
   }
 
   /* ---- tab 1: training vs. evaluation ---- */
   function initOverview() {
     var gd = document.getElementById("umap-train-eval");
-    var mode = "side", drawing = false, merged = null, size = 3, opacity = 0.5, touched = false;
-    var DEFAULTS = {side: {size: 3, opacity: 0.5}, combined: {size: 2, opacity: 0.25}};  // 300k points are denser
-    var tools = CameraTools({gd: gd, prefix: "umap", scenes: function () { return mode === "side" ? ["scene", "scene2"] : ["scene"]; }});
+    var mode = "grid", drawing = false, merged = null, size = 2, opacity = 0.3, touched = false, linked = true;
+    var DEFAULTS = {side: {size: 3, opacity: 0.5}, combined: {size: 2, opacity: 0.25}, grid: {size: 2, opacity: 0.3}};  // 300k points are denser
+    // Paper-figure grid: 3 rows (azimuths 20/80/140) x 2 columns (training | evaluation); every plot is its own scene.
+    var GRID_SCENES = ["scene", "scene2", "scene3", "scene4", "scene5", "scene6"];
+    var tools = CameraTools({gd: gd, prefix: "umap", scenes: function () {
+      return mode === "grid" ? GRID_SCENES : (mode === "side" ? ["scene", "scene2"] : ["scene"]); }});
+    // The regenerated paper figure views the evaluation column from the opposite side (+180 deg azimuth).
+    function paperEye(row, isEval) {
+      var e = D.views[row].eye;
+      return isEval ? {x: -e.x, y: -e.y, z: e.z} : {x: e.x, y: e.y, z: e.z};
+    }
 
     function getMerged() {
       if (!merged) merged = {ot: concat(G.tOT, G.eOT), cd: concat(G.tCD, G.eCD)};
@@ -411,10 +433,14 @@ RENDER_JS = r"""
       return {type: "scatter3d", mode: "markers", x: g.x, y: g.y, z: g.z, name: name, scene: scene,
               showlegend: showLegend, hoverinfo: "skip", marker: {size: size, color: color, opacity: opacity}};
     }
-    function sceneDef(x0, x1, eye) {
+    function sceneDef(x0, x1, eye, y0, y1, boxScale) {
       function ax(i, t) { return {title: {text: t}, range: D.ranges[i], dtick: 1}; }
-      return {domain: {x: [x0, x1], y: [0, 1]}, xaxis: ax(0, "UMAP 1"), yaxis: ax(1, "UMAP 2"), zaxis: ax(2, "UMAP 3"),
-              aspectmode: "cube", camera: {eye: eye, center: {x: 0, y: 0, z: 0}, up: {x: 0, y: 0, z: 1}}};
+      var s = {domain: {x: [x0, x1], y: [y0 === undefined ? 0 : y0, y1 === undefined ? 1 : y1]},
+               xaxis: ax(0, "UMAP 1"), yaxis: ax(1, "UMAP 2"), zaxis: ax(2, "UMAP 3"),
+               aspectmode: "cube", camera: {eye: eye, center: {x: 0, y: 0, z: 0}, up: {x: 0, y: 0, z: 1}}};
+      // boxScale < 1 leaves room inside a small plot for its axis titles (they are clipped at the plot edge).
+      if (boxScale) { s.aspectmode = "manual"; s.aspectratio = {x: boxScale, y: boxScale, z: boxScale}; }
+      return s;
     }
     // Annotation text is NOT constrained to its scene's domain width, so on a
     // narrow (phone) screen two side-by-side captions at x=0.25/0.75 collide.
@@ -430,7 +456,21 @@ RENDER_JS = r"""
       var layout, data;
       var narrow = (gd.clientWidth || gd.getBoundingClientRect().width || 900) < NARROW_PX;
       var titleSize = narrow ? 13 : 18, annSize = narrow ? 11 : 13;
-      if (mode === "side") {
+      if (mode === "grid") {
+        data = []; layout = {annotations: [
+          ann("<b>Training dataset</b><br>n = " + fmt(G.tOT.n + G.tCD.n), 0.25, 1.0, annSize),
+          ann("<b>Evaluation dataset</b><br>n = " + fmt(G.eOT.n + G.eCD.n), 0.75, 1.0, annSize)]};
+        for (var r = 0; r < 3; r++) {
+          for (var c = 0; c < 2; c++) {
+            var sn = GRID_SCENES[r * 2 + c], isEval = c === 1, first = (r === 0 && c === 0);
+            var ot = isEval ? G.eOT : G.tOT, cd = isEval ? G.eCD : G.tCD;
+            var tOT = trace(ot, OT_C, "Other transient (OT)", sn, first), tCD = trace(cd, CD_C, "Call detection (CD)", sn, first);
+            tOT.legendgroup = "OT"; tCD.legendgroup = "CD";   // one legend click hides/shows a class in all six plots
+            data.push(tOT, tCD);   // calls drawn last so the (far fewer) call detections stay visible over the transients
+            layout[sn] = sceneDef(c * 0.5, (c + 1) * 0.5, paperEye(r, isEval), 1 - (r + 1) / 3 + 0.005, 1 - r / 3 - 0.005, 0.8);
+          }
+        }
+      } else if (mode === "side") {
         data = [trace(G.tOT, OT_C, "Other transient (OT)", "scene", true), trace(G.tCD, CD_C, "Call detection (CD)", "scene", true),
                 trace(G.eOT, OT_C, "Other transient (OT)", "scene2", false), trace(G.eCD, CD_C, "Call detection (CD)", "scene2", false)];
         layout = {scene: sceneDef(0, 0.5, eye), scene2: sceneDef(0.5, 1, eye),
@@ -448,7 +488,7 @@ RENDER_JS = r"""
       layout.title = {text: "<b>UMAP of the autoencoder latent space</b>", x: 0.5, xanchor: "center", y: 0.97, yanchor: "top", font: {size: titleSize}};
       layout.legend = {itemsizing: "constant", orientation: "h", x: 0.5, xanchor: "center", y: -0.02, yanchor: "top"};
       layout.margin = {l: 0, r: 0, t: narrow ? (mode === "side" ? 190 : 95) : 90, b: 60};
-      layout.height = narrow ? 480 : 820;
+      layout.height = mode === "grid" ? (narrow ? 1100 : 1560) : (narrow ? 480 : 820);
       return {data: data, layout: layout};
     }
     function attachSync() {
@@ -458,7 +498,7 @@ RENDER_JS = r"""
       if (mode !== "side") return;
       var busy = false;
       function mirror(ev) {
-        if (busy) return;
+        if (busy || !linked) return;
         var src = ev["scene.camera"] ? "scene" : (ev["scene2.camera"] ? "scene2" : null);
         if (!src) return;
         var dst = src === "scene" ? "scene2" : "scene", upd = {};
@@ -481,9 +521,16 @@ RENDER_JS = r"""
       });
       var total = G.tOT.n + G.tCD.n + G.eOT.n + G.eCD.n;
       document.getElementById("umap-hint").textContent =
-        "Drag to rotate \u00b7 zoom with the slider, \u2212/+ buttons, scroll wheel or the +/\u2212 keys \u00b7 " +
+        (mode === "grid" ? "Drag inside any one of the six plots to rotate just that plot \u00b7 " : "Drag to rotate \u00b7 ") +
+        "zoom with the slider, \u2212/+ buttons, scroll wheel or the +/\u2212 keys \u00b7 " +
         "click a legend entry to hide/show CD or OT \u00b7 all " + fmt(total) + " points are drawn (none subsampled)" +
-        (mode === "side" ? " \u00b7 the two panels rotate together" : "");
+        (mode === "side" ? (linked ? " \u00b7 the two panels rotate together (untick \u201cLink rotation\u201d to turn them independently)"
+                                   : " \u00b7 each panel now rotates independently") : "");
+      document.getElementById("umap-linkgrp").style.display = mode === "side" ? "" : "none";
+      document.getElementById("umap-gridgrp").style.display = mode === "grid" ? "" : "none";
+      document.querySelectorAll("#umap-controls [data-view]").forEach(function (b) {
+        b.style.display = mode === "grid" ? "none" : "";   // the 1/2/3 presets would force all six plots to one view
+      });
     }
     function draw(newMode) {
       var eye = (gd._fullLayout && gd._fullLayout.scene) ? tools.currentEye() : D.views[0].eye;
@@ -505,6 +552,26 @@ RENDER_JS = r"""
     document.querySelectorAll("#umap-controls [data-view]").forEach(function (b) {
       b.addEventListener("click", function () { tools.setEye(D.views[+b.getAttribute("data-view")].eye); });
     });
+    var linkBox = document.getElementById("umap-link");
+    linkBox.addEventListener("change", function () {
+      linked = linkBox.checked;
+      if (linked) tools.setEye(tools.eyeOf("scene"));   // re-link: evaluation panel adopts the training panel's view
+      markButtons();
+    });
+    document.getElementById("umap-evalrot").addEventListener("click", function () {
+      // Turn only the evaluation panel 180 deg about the vertical axis (unlinks the panels).
+      var e = tools.eyeOf("scene2"), t = tools.eyeOf("scene");
+      linked = false; linkBox.checked = false; markButtons();
+      // Write BOTH cameras: relayout re-applies the layout camera of any scene it doesn't mention, which lags the live one.
+      Plotly.relayout(gd, {"scene.camera.eye": t, "scene2.camera.eye": {x: -e.x, y: -e.y, z: e.z}});
+    });
+    document.getElementById("umap-resetgrid").addEventListener("click", function () {
+      if (mode !== "grid") return;
+      var upd = {};
+      GRID_SCENES.forEach(function (s, i) { upd[s + ".camera.eye"] = paperEye(Math.floor(i / 2), i % 2 === 1); });
+      tools.stopSpin();
+      Plotly.relayout(gd, upd);
+    });
     function slider(id, onChange) {
       var s = document.getElementById(id), lab = document.getElementById(id + "-v");
       s.addEventListener("input", function () { lab.textContent = s.value; });
@@ -512,7 +579,7 @@ RENDER_JS = r"""
     }
     slider("umap-size", function (v) { size = v; Plotly.restyle(gd, {"marker.size": v}); });
     slider("umap-opacity", function (v) { opacity = v; Plotly.restyle(gd, {"marker.opacity": v}); });
-    draw("side");
+    draw("grid");
     return {gd: gd, tools: tools, mode: function () { return mode; }};
   }
 
