@@ -262,12 +262,6 @@ def draw(out: Path) -> None:
                                   arrowstyle="-|>", mutation_scale=18, linewidth=1.8,
                                   color="#777777", zorder=2))
 
-    n_params = 3_358_593
-    fig.suptitle(f"Convolutional autoencoder architecture ({n_params:,} parameters)",
-                 fontsize=FONT_SECTION + 2, y=1.015)
-    fig.text(0.5, 0.93, "Block dimensions shown as $C \\times H \\times W$ (channels x height x width)",
-             ha="center", fontsize=FONT_NOTE * 1.2, color="#37474f")
-
     ax.set_xlim(-1.4, max(row1_xmax, row2_xmax) + 1.5)
     ax.set_ylim(row2_y0 - 6.0, row1_y0 + hgt + 5.6)
     ax.set_aspect("auto")

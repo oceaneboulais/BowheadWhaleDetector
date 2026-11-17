@@ -15,11 +15,16 @@ the Oct-21 MATLAB export (``latent_embeddings_3d_eval_8to1_MATLAB_combined_10212
     probe trained on the matched 100k training draw and scored once on the
     SAME full 199,825-image eval set as the Supervised CNN (see
     bowhead/benchmark/save_image_backbone_curves_relabel.py).
-  - BirdNET/Perch 2.0 -- runs/birdnet_relabel_100k_matched_full199825.json
-    ("reviewed" condition); frozen linear probe over Griffin-Lim-reconstructed
-    audio embeddings, fit on the full 100k_matched training draw and scored on
-    the SAME full 199,825-image eval set as the other three rows -- fully
-    protocol-matched (see bowhead.eval.run_birdnet_relabel_curves_full).
+  - SurfPerch (real audio, native arm) -- runs/surfperch_native_relabel_100k_matched_full199825.json
+    ("reviewed" condition); frozen linear probe over embeddings of REAL raw
+    DASAR audio (not a Griffin-Lim reconstruction -- see
+    bowhead.eval.run_surfperch_relabel_curves and
+    bowhead.eval.raw_audio_loader for how each sample's audio is located,
+    verified, and extracted from /Volumes/Bowhead_WAV), fit on the full
+    100k-matched training draw and scored on the SAME full 199,825-image eval
+    set as the other three rows -- fully protocol-matched. This replaces an
+    earlier, mislabeled "Perch v1" row that actually used BirdNET on
+    Griffin-Lim-reconstructed audio.
 
 Usage:
     PYTHONPATH=. .venv_ae/bin/python -m bowhead.benchmark.plot_cnn_family_combined_pr_fdr
@@ -41,13 +46,13 @@ _COLORS = {
     "Supervised CNN": "#0072B2",
     "ResNet-18 (ImageNet)": "#E69F00",
     "EfficientNet-B0 (ImageNet)": "#009E73",
-    "BirdNET/Perch 2.0": "#CC79A7",
+    "SurfPerch (real audio)": "#CC79A7",
 }
 _LINESTYLES = {
     "Supervised CNN": "-",
     "ResNet-18 (ImageNet)": "--",
     "EfficientNet-B0 (ImageNet)": "-.",
-    "BirdNET/Perch 2.0": ":",
+    "SurfPerch (real audio)": ":",
 }
 
 
@@ -89,22 +94,22 @@ def _load_image_backbones() -> dict:
     return out
 
 
-def _load_birdnet() -> dict:
-    path = _REPO_ROOT / "runs" / "birdnet_relabel_100k_matched_full199825.json"
+def _load_surfperch() -> dict:
+    path = _REPO_ROOT / "runs" / "surfperch_native_relabel_100k_matched_full199825.json"
     if not path.exists():
         return {}
     d = json.loads(path.read_text())
     m = d["reviewed"]
     precision = np.asarray(m["pr_precision"])
     recall = np.asarray(m["pr_recall"])
-    return {"BirdNET/Perch 2.0": dict(precision=precision, recall=recall,
-                                       ap=float(m["average_precision"]),
-                                       pr_auc=_pr_auc(precision, recall),
-                                       n=int(m["n"]))}
+    return {"SurfPerch (real audio)": dict(precision=precision, recall=recall,
+                                            ap=float(m["average_precision"]),
+                                            pr_auc=_pr_auc(precision, recall),
+                                            n=int(m["n"]))}
 
 
 def main() -> None:
-    models = {**_load_supervised_cnn(), **_load_image_backbones(), **_load_birdnet()}
+    models = {**_load_supervised_cnn(), **_load_image_backbones(), **_load_surfperch()}
 
     import matplotlib
     matplotlib.use("Agg")

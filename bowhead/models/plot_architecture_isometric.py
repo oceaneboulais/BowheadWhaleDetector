@@ -314,12 +314,6 @@ def draw(model: EncoderClassifier, hw: tuple[int, int], out: Path) -> None:
                                   arrowstyle="-|>", mutation_scale=18, linewidth=1.8,
                                   color="#777777", zorder=2))
 
-    n_params = sum(p_.numel() for p_ in model.parameters())
-    fig.suptitle(f"Supervised CNN classifier architecture ({n_params:,} parameters)",
-                 fontsize=FONT_SECTION + 2, y=1.03)
-    fig.text(0.5, 0.95, "Block dimensions shown as $C \\times H \\times W$ (channels x height x width)",
-             ha="center", fontsize=FONT_NOTE, color="#37474f")
-
     ax.set_xlim(-1.4, max(row1_xmax, row2_xmax, warm_x1_2) + 1.5)
     ax.set_ylim(row2_y0 - 2.0, row1_y0 + hgt + 3.6)
     ax.set_aspect("auto")

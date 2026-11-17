@@ -12,7 +12,7 @@ Data sources:
     ["reviewed"] -- full 199,825-spectrogram independent eval set.
   - Warm-start CNN: runs/warmstart_cnn_relabel_100k_matched_combined102126.json
     ["reviewed"] -- full 199,825-spectrogram independent eval set.
-  - BirdNET/Perch 2.0: runs/birdnet_relabel_100k_matched_full199825.json
+  - Perch v1: runs/birdnet_relabel_100k_matched_full199825.json
     ["reviewed"] -- full 199,825-spectrogram independent eval set (Griffin-Lim
     reconstruction + frozen linear probe fit on a 4,000-image train subsample).
   - ResNet-18, EfficientNet-B0: runs/resnet_efficientnet_relabel_100k_matched_combined102126.json
@@ -47,7 +47,7 @@ MODELS = {
     "Warm-start CNN (AE-init)": dict(
         ap=0.7095, roc_auc=0.9621, n=199_825,
         note="Full independent eval set, reviewed labels."),
-    "BirdNET/Perch 2.0": dict(
+    "Perch v1": dict(
         ap=0.3781, roc_auc=0.8068, n=199_825,
         note="Full independent eval set, reviewed labels."),
     "ResNet-18 (ImageNet)": dict(
@@ -205,10 +205,10 @@ def main() -> None:
 
     birdnet = json.loads(BIRDNET_JSON.read_text())["reviewed"]
     _plot_single_model(
-        "BirdNET/Perch 2.0",
+        "Perch v1",
         np.asarray(birdnet["pr_precision"]), np.asarray(birdnet["pr_recall"]),
         birdnet["average_precision"], birdnet["roc_auc"], birdnet["n"],
-        FIG_DIR / "birdnet_perch_pr_fdr.png",
+        FIG_DIR / "perch_v1_pr_fdr.png",
     )
 
     backbones = json.loads(BACKBONES_JSON.read_text())
@@ -236,7 +236,7 @@ def main() -> None:
             ("Warm-start CNN (AE-init)", np.asarray(warmstart["pr_precision"]),
              np.asarray(warmstart["pr_recall"]), warmstart["average_precision"],
              warmstart["roc_auc"], warmstart["prevalence"], warmstart["n"], "#4e9af1"),
-            ("BirdNET/Perch 2.0", np.asarray(birdnet["pr_precision"]),
+            ("Perch v1", np.asarray(birdnet["pr_precision"]),
              np.asarray(birdnet["pr_recall"]), birdnet["average_precision"],
              birdnet["roc_auc"], birdnet["prevalence"], birdnet["n"], "#2ecc71"),
             ("ResNet-18 (ImageNet)", np.asarray(resnet18["pr_precision"]),
@@ -248,7 +248,7 @@ def main() -> None:
         ],
         FIG_DIR / "cnn_family_combined_pr_fdr.png",
         title="CNN-family detectors, reviewed labels",
-        subtitle=(f"(scratch/warm-start/BirdNET: full eval set, n={scratch['n']:,}; "
+        subtitle=(f"(scratch/warm-start/Perch v1: full eval set, n={scratch['n']:,}; "
                    f"ResNet-18/EfficientNet-B0: subsample, n={resnet18['n']:,})"),
     )
 

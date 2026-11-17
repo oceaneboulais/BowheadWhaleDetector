@@ -134,17 +134,17 @@ def main() -> None:
     # ── Panel 2: BirdNET-from-gram ──────────────────────────────────────────
     b = results["birdnet"]
     fig_html2 = _pr_fdr_figure(
-        "BirdNET (from reconstructed audio)", "#17becf", b["pr_precision"], b["pr_recall"],
+        "Perch v1 (from reconstructed audio)", "#17becf", b["pr_precision"], b["pr_recall"],
         b["prevalence"], b["n"],
-        "BirdNET / Perch 2.0 (Griffin-Lim Reconstructed Audio) — Detection PR Curves",
+        "Perch v1 (Griffin-Lim Reconstructed Audio) — Detection PR Curves",
     )
     meta = b.get("_meta", {})
     card_html2 = _summary_card(
-        "BirdNET / Perch 2.0 (frozen linear probe on reconstructed-audio embeddings)",
+        "Perch v1 (frozen linear probe on reconstructed-audio embeddings)",
         "#17becf",
         b["roc_auc"], b["average_precision"], _precision_at_recall(b),
         b["n"], b["prevalence"],
-        '<b>Important caveat:</b> the real pretrained BirdNET/Perch 2.0 model '
+        '<b>Important caveat:</b> the real pretrained Perch v1 model '
         '(<a href="https://tfhub.dev/google/bird-vocalization-classifier/4" target="_blank" '
         'rel="noopener">tfhub.dev/google/bird-vocalization-classifier/4</a>) accepts '
         '<b>only raw 5s/32kHz audio</b> &mdash; it has no spectrogram-input path. Since this '
@@ -152,7 +152,7 @@ def main() -> None:
         'is reconstructed from each SNR-gram via inverse-STFT (Griffin-Lim, 32 iterations), '
         'resampled to 32kHz, and fed through the real model to get a 1280-D embedding. '
         'Phase is <i>synthesized</i> by Griffin-Lim, not the true recorded phase, so this '
-        'measures how well BirdNET\'s learned features transfer to bowhead calls given only '
+        'measures how well Perch\'s learned features transfer to bowhead calls given only '
         'magnitude information &mdash; not a plug-and-play spectrogram benchmark. A frozen '
         f'linear probe (logistic regression) was fit on {meta.get("n_train_probe", "?"):,} '
         f'train embeddings and evaluated on {meta.get("n_test_subsample", "?"):,} held-out '
@@ -160,7 +160,7 @@ def main() -> None:
         'reconstruction is CPU-bound).',
     )
     sections.append(f'<h3 style="font-family:sans-serif;margin:22px auto 0 auto;'
-                     f'max-width:1000px">Transfer-Learning Baseline — BirdNET / Perch 2.0 '
+                     f'max-width:1000px">Transfer-Learning Baseline — Perch v1 '
                      f'(from Reconstructed Audio)</h3>' + fig_html2 + card_html2)
 
     html = HTML_PATH.read_text()

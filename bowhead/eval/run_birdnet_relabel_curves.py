@@ -124,7 +124,7 @@ def run(eval_mat: Path, eval_dir: Path, out_json: Path, n_subsample: int) -> Non
         caveat=(
             "Audio reconstructed from SNR-gram magnitude via Griffin-Lim (phase is "
             "synthesized, not the true recorded phase); embeddings from the real "
-            "pretrained BirdNET/Perch 2.0 TF-Hub model; frozen linear probe fit on a "
+            "pretrained Perch v1 TF-Hub model; frozen linear probe fit on a "
             f"{TRAIN_N}-image subsample of the 100k_matched train split, scored on a "
             f"{len(sub_filenames):,}-image subsample of the 199,825-image eval set "
             "(Griffin-Lim reconstruction is CPU-bound)."

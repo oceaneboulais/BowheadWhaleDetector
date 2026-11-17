@@ -36,7 +36,7 @@ MARKER = '<div id="cnn-family-panel-marker" style="display:none"></div>'
 MODEL_PROTOCOLS = [
     ("Scratch CNN (cold start)", "Full independent eval set"),
     ("Warm-start CNN (AE-init)", "Full independent eval set"),
-    ("BirdNET/Perch 2.0", "Full eval set, Griffin-Lim + linear probe"),
+    ("Perch v1", "Full eval set, Griffin-Lim + linear probe"),
     ("ResNet-18 (ImageNet)", "Full independent eval set, linear probe"),
     ("EfficientNet-B0 (ImageNet)", "Full independent eval set, linear probe"),
 ]
@@ -124,7 +124,7 @@ def main() -> None:
     results_by_name = {
         "Scratch CNN (cold start)": scratch,
         "Warm-start CNN (AE-init)": warmstart,
-        "BirdNET/Perch 2.0": birdnet,
+        "Perch v1": birdnet,
         "ResNet-18 (ImageNet)": resnet18,
         "EfficientNet-B0 (ImageNet)": efficientnet_b0,
     }
@@ -152,7 +152,7 @@ def main() -> None:
                              np.asarray(warmstart["pr_precision"]),
                              np.asarray(warmstart["pr_recall"]),
                              warmstart["average_precision"], warmstart["roc_auc"], warmstart["n"])
-        + _pr_fdr_panel_html("BirdNET/Perch 2.0", np.asarray(birdnet["pr_precision"]),
+        + _pr_fdr_panel_html("Perch v1", np.asarray(birdnet["pr_precision"]),
                              np.asarray(birdnet["pr_recall"]),
                              birdnet["average_precision"], birdnet["roc_auc"], birdnet["n"])
         + _pr_fdr_panel_html("ResNet-18 (ImageNet)", np.asarray(resnet18["pr_precision"]),

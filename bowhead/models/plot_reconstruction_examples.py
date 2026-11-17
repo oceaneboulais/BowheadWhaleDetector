@@ -1,11 +1,18 @@
 """Regenerate the paper's AE input-vs-reconstruction example figures.
 
-Loads the Autoencoder_v13 checkpoint (``runs/ae_100k_matched/autoencoder_clean.pt``)
-and the exact 10 raw spectrograms used in the originally-published figure (found by
-their filenames on the mounted ``R3D_2024_1`` drive's master database), runs them
-through the full encoder+decoder, and plots TWO separate 2-row x 5-column figures
+Loads the Autoencoder_v13 checkpoint (ConvTranspose2d-decoder variant, matching
+the architecture described in the paper's Methods section) and the exact 10 raw
+spectrograms used in the originally-published figure (found by their filenames
+on the mounted ``R3D_2024_1`` drive's master database), runs them through the
+full encoder+decoder, and plots TWO separate 2-row x 5-column figures
 (top: input spectrograms, bottom: reconstructions) with large, paper-matching row
 labels — the first 5 stems in one figure, the last 5 in the other.
+
+Note: an earlier version of this script used
+``runs/ae_100k_matched/autoencoder_clean.pt``, whose decoder uses
+nn.Upsample+Conv2d; that design blurs closely-spaced, fine time-frequency
+structure (e.g.\ harmonics, overlapping multi-signal spectrograms) together.
+The true ConvTranspose2d decoder used here preserves that detail far better.
 
 Run:
     PYTHONPATH=. .venv_ae/bin/python -m bowhead.models.plot_reconstruction_examples
@@ -63,7 +70,7 @@ def _load_snr_gram(stem: str) -> np.ndarray:
 
 
 class _Autoencoder(nn.Module):
-    """Mirrors bowhead.train.train_ae._Autoencoder (same checkpoint keys)."""
+    """True ConvTranspose2d-decoder architecture (matches the Methods section)."""
 
     def __init__(self, base_channels: int = 32, latent_dim: int = 32,
                  input_hw: tuple[int, int] = (121, 104)) -> None:
@@ -90,13 +97,9 @@ class _Autoencoder(nn.Module):
         )
         H_e, W_e = self._enc_spatial
         self.decoder = nn.Sequential(
-            nn.Upsample(scale_factor=2, mode="nearest"),
-            nn.Conv2d(c * 4, c * 2, 3, padding=1), nn.BatchNorm2d(c * 2), nn.ReLU(True),
-            nn.Upsample(scale_factor=2, mode="nearest"),
-            nn.Conv2d(c * 2, c, 3, padding=1), nn.BatchNorm2d(c), nn.ReLU(True),
-            nn.Upsample(scale_factor=2, mode="nearest"),
-            nn.Conv2d(c, 1, 3, padding=1),
-            nn.Sigmoid(),
+            nn.ConvTranspose2d(c * 4, c * 2, 2, stride=2), nn.BatchNorm2d(c * 2), nn.ReLU(True),
+            nn.ConvTranspose2d(c * 2, c, 2, stride=2), nn.BatchNorm2d(c), nn.ReLU(True),
+            nn.ConvTranspose2d(c, 1, 2, stride=2),
         )
         self._enc_channels = c * 4
         self._H_e, self._W_e = H_e, W_e
@@ -152,9 +155,16 @@ def _render(stems: list[str], out_path: Path, model: "_Autoencoder") -> None:
     print(f"Saved {out_path}")
 
 
+ORIGINAL_CHECKPOINT = (
+    "/Users/oceaneboulais/Github/ThodeLab/BowheadDeepLearningMATLAB/results/"
+    "Autoencoder_v13_100E_32LD_32C_AutoManual_Combined_100K_Date20251228-124835.dir/"
+    "autoencoder_clean.pth"
+)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--checkpoint", default="runs/ae_100k_matched/autoencoder_clean.pt")
+    parser.add_argument("--checkpoint", default=ORIGINAL_CHECKPOINT)
     parser.add_argument(
         "--out-prefix",
         default="paper/Figures/reconstructions_Autoencoder_v13_100E_32LD_32C_AutoManual_Combined_100K_Date20260416-180022",

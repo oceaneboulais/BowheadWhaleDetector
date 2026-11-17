@@ -133,7 +133,7 @@ def main() -> None:
         "caveat": (
             "Audio reconstructed from SNR-gram magnitude via Griffin-Lim "
             "(phase is synthesized, not the true recorded phase); embeddings "
-            "from the real pretrained BirdNET/Perch 2.0 TF-Hub model; "
+            "from the real pretrained Perch v1 TF-Hub model; "
             "frozen linear probe on a subsample (Griffin-Lim reconstruction "
             "is CPU-bound)."
         ),

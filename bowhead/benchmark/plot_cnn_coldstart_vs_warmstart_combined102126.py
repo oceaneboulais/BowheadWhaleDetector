@@ -27,10 +27,12 @@ SCRATCH_JSON = _REPO_ROOT / "runs" / "scratch_cnn_relabel_100k_matched_combined1
 WARMSTART_JSON = _REPO_ROOT / "runs" / "warmstart_cnn_relabel_100k_matched_combined102126.json"
 OUT_PNG = _REPO_ROOT / "paper" / "Figures" / "cnn_coldstart_vs_warmstart_combined102126_pr_fdr.png"
 
-COLORS = {"scratch": "#D55E00", "warmstart": "#0072B2"}
+# Okabe-Ito palette and line styles as in cnn_family_combined_pr_fdr.py (custom CNN = dark blue).
+COLORS = {"scratch": "#0072B2", "warmstart": "#D55E00"}
+LINESTYLES = {"scratch": "-", "warmstart": "--"}
 LABELS = {
-    "scratch": "Scratch CNN (cold start)",
-    "warmstart": "Warm-start CNN (AE-init)",
+    "scratch": "Custom CNN (cold-start)",
+    "warmstart": "Warm-start CNN (autoencoder-initialised)",
 }
 
 
@@ -58,9 +60,10 @@ def main() -> None:
         prec = np.asarray(m["pr_precision"])
         rec = np.asarray(m["pr_recall"])
         color = COLORS[name]
+        ls = LINESTYLES[name]
         label = LABELS[name]
-        axes[0].plot(rec, prec, color=color, lw=2, label=label)
-        axes[1].plot(1 - rec, 1 - prec, color=color, lw=2, label=label)
+        axes[0].plot(rec, prec, color=color, ls=ls, lw=2, label=label)
+        axes[1].plot(1 - rec, 1 - prec, color=color, ls=ls, lw=2, label=label)
 
         # Mark the matched miss-fraction=10% operating point (same convention
         # as the scratch-CNN relabeling figure).
@@ -78,7 +81,6 @@ def main() -> None:
     axes[0].set_ylim(0, 1.02)
     axes[0].set_title("Precision-Recall")
     axes[0].grid(True, alpha=0.3)
-    axes[0].legend(loc="lower left", frameon=False, fontsize=9)
 
     axes[1].set_xlabel("Miss fraction (1 \u2212 recall)")
     axes[1].set_ylabel("False discovery rate (1 \u2212 precision)")
@@ -86,16 +88,22 @@ def main() -> None:
     axes[1].set_ylim(0, 1.02)
     axes[1].set_title("FDR vs. Miss Fraction")
     axes[1].grid(True, alpha=0.3)
-    axes[1].legend(loc="upper right", frameon=False, fontsize=9)
 
+    ticks = np.round(np.arange(0, 1.0001, 0.1), 1)
+    for ax in axes:
+        ax.set_xticks(ticks)
+        ax.set_yticks(ticks)
+
+    handles, labels = axes[0].get_legend_handles_labels()
+    fig.legend(handles, labels, loc="lower center", ncol=1, bbox_to_anchor=(0.5, -0.12),
+               frameon=False, fontsize=9)
     fig.suptitle(
-        f"Cold-start vs. warm-start CNN (reviewed labels, 10/21/2026 update)\n"
+        f"Cold-start vs. warm-start CNN\n"
         f"n={n:,}; \u25c7 = matched miss-fraction={target_miss:.0%} operating point",
-        fontsize=12,
     )
-    fig.tight_layout(rect=(0, 0, 1, 0.92))
+    fig.tight_layout()
     OUT_PNG.parent.mkdir(parents=True, exist_ok=True)
-    fig.savefig(OUT_PNG, dpi=200)
+    fig.savefig(OUT_PNG, dpi=200, bbox_inches="tight")
     print(f"Saved figure -> {OUT_PNG}")
 
 

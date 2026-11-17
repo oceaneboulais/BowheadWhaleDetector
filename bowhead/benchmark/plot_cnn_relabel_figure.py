@@ -70,7 +70,6 @@ def main() -> None:
     axes[0].set_ylim(0, 1.02)
     axes[0].set_title("Precision-Recall")
     axes[0].grid(True, alpha=0.3)
-    axes[0].legend(loc="lower left", frameon=False, fontsize=9)
 
     axes[1].set_xlabel("Miss fraction (1 \u2212 recall)")
     axes[1].set_ylabel("False discovery rate (1 \u2212 precision)")
@@ -78,15 +77,21 @@ def main() -> None:
     axes[1].set_ylim(0, 1.02)
     axes[1].set_title("FDR vs. Miss Fraction")
     axes[1].grid(True, alpha=0.3)
-    axes[1].legend(loc="upper right", frameon=False, fontsize=9)
 
+    ticks = np.round(np.arange(0, 1.0001, 0.1), 1)
+    for ax in axes:
+        ax.set_xticks(ticks)
+        ax.set_yticks(ticks)
+
+    handles, labels = axes[0].get_legend_handles_labels()
+    fig.legend(handles, labels, loc="lower center", ncol=1, bbox_to_anchor=(0.5, -0.12),
+               frameon=False, fontsize=9)
     fig.suptitle(
-        f"Scratch CNN (cold start), before vs. after dataset relabeling\n"
+        f"Custom CNN, before vs. after dataset relabeling\n"
         f"n={n:,}, same frozen predictions; \u25c7 = matched miss-fraction="
         f"{target_miss:.0%} operating point",
-        fontsize=12,
     )
-    fig.tight_layout(rect=(0, 0, 1, 0.92))
+    fig.tight_layout()
     OUT_PNG.parent.mkdir(parents=True, exist_ok=True)
     fig.savefig(OUT_PNG, dpi=200, bbox_inches="tight")
     print(f"Saved figure -> {OUT_PNG}")

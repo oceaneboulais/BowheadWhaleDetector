@@ -45,9 +45,9 @@ def main() -> None:
         moan,
     )
     section += section_html(
-        "Relabeling Ablation — BirdNET / Perch 2.0, Before vs. After Review",
-        "BirdNET / Perch 2.0 (Griffin-Lim reconstructed audio) — Before vs. After Relabeling",
-        "the frozen BirdNET/Perch 2.0 linear probe on Griffin-Lim reconstructed audio "
+        "Relabeling Ablation — Perch v1, Before vs. After Review",
+        "Perch v1 (Griffin-Lim reconstructed audio) — Before vs. After Relabeling",
+        "the frozen Perch v1 linear probe on Griffin-Lim reconstructed audio "
         f"(probe fit on a {birdnet['_meta']['n_train']:,}-image train draw, evaluated on the "
         f"full {birdnet['_meta']['n']:,}-image eval set, protocol-matched to the other "
         "CNN-family rows)",

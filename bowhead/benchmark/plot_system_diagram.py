@@ -119,7 +119,7 @@ def draw(out: Path, dpi: int = 180) -> None:
     # ── 3. Waveform backbones ──────────────────────────────────────────────────
     wav = [
         (["BirdNET 2.3", "TF-Hub  48 kHz  1024-D"],                        43.0),
-        (["Perch 2.0", "TF-Hub  32 kHz  1280-D"],                          37.0),
+        (["Perch v1", "TF-Hub  32 kHz  1280-D"],                          37.0),
         (["GMWM", "Google Multispecies Whale", "24 kHz  1280-D"],          30.5),
     ]
     for lines, yc in wav:

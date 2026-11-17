@@ -113,7 +113,7 @@ def run(eval_mat: Path, eval_dir: Path, matched_train_npz: Path, out_json: Path)
         caveat=(
             "Audio reconstructed from SNR-gram magnitude via Griffin-Lim (phase is "
             "synthesized, not the true recorded phase); embeddings from the real "
-            "pretrained BirdNET/Perch 2.0 TF-Hub model; frozen linear probe fit on the "
+            "pretrained Perch v1 TF-Hub model; frozen linear probe fit on the "
             f"full {len(train_images):,}-image 100k_matched train draw (same protocol as "
             "the ResNet-18/EfficientNet-B0 relabel runs), scored on the full "
             f"{len(filenames):,}-image eval set -- fully protocol-matched to the other "

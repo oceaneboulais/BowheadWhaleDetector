@@ -7,6 +7,88 @@ DASAR passive-acoustic data (Beaufort Sea, 2007–2014).
 Companion code for *"Enhancing bowhead whale detection using convolutional
 autoencoders"* (Thode 2026, JASA).
 
+## How the detectors work
+
+Every raw sound in this project — a whale call, a seismic airgun pulse, or
+background noise — is first converted into a small grayscale image called a
+**spectrogram**: a 3-second, 121-pixel (frequency, 0–500 Hz) by 104-pixel
+(time) picture of how loud each frequency is at each moment. Both detectors
+below work by looking at these 121×104 images, not the raw sound wave.
+
+### The autoencoder: an unsupervised "feature finder"
+
+The convolutional autoencoder (CAE) is trained with **no labels at all** —
+it is never told which images are whale calls. Instead it is given a simple
+task: look at a spectrogram, squeeze it down into just **32 numbers** (the
+*latent vector*), and then try to redraw the original spectrogram from only
+those 32 numbers. Because the network is forced through this narrow
+32-number "bottleneck," it can't memorize every pixel — it has to learn
+which handful of underlying features (the shape of a frequency sweep, its
+duration, how it rises or falls) are most useful for reconstructing the
+image. Those 32 numbers end up acting like a compact fingerprint of the
+sound's time-frequency shape.
+
+Concretely, the encoder half shrinks the image through three convolutional
+blocks (each a 3×3 convolution + batch normalization + ReLU + 2×2 max-pool),
+taking the channel depth from 1 → 32 → 64 → 128 while shrinking the spatial
+size from 121×104 down to 15×13; this is flattened and passed through two
+fully-connected layers down to the final 32-D latent vector. The decoder
+half mirrors this in reverse (two fully-connected layers back up, then
+three transposed-convolution layers) to reconstruct the 121×104 image from
+those same 32 numbers, so reconstruction quality is a direct check on how
+much real information survived the squeeze:
+
+![Autoencoder architecture](paper/Figures/autoencoder_arch_Autoencoder_v13_100E_32LD_32C_AutoManual_Combined_100K_Date20260416-180022.png)
+
+Once trained, this 32-D latent space is useful two ways:
+1. **As a detector with no extra training** — take the latent vector of a
+   new spectrogram, find its `k` nearest neighbors (by Euclidean distance)
+   among a pool of already-labeled training spectrograms, and use the
+   fraction of those neighbors that are whale calls as a call-probability
+   score ("AE+kNN", `k`=40 in the paper). See `bowhead/eval/ae_knn_baseline.py`.
+2. **As a warm-start for the supervised classifier below**, by reusing its
+   trained encoder weights instead of starting from random ones.
+
+### The CNN detector: a supervised call / non-call classifier
+
+The supervised CNN reuses the *exact same* three-convolutional-block encoder
+trunk described above, but instead of a decoder it attaches a small
+classification head — a single linear layer that turns the 32-D latent
+vector into a call vs.\ non-call probability — and is trained end-to-end
+(every weight, including the encoder's, keeps updating) on labeled
+examples using a cross-entropy loss:
+
+![CNN classifier architecture](paper/Figures/cnn_classifier_architecture.png)
+
+Two versions of this CNN were compared, differing only in how the encoder's
+weights are set before training starts:
+- **Cold-start ("scratch")** — the whole network, encoder included, starts
+  from random weights.
+- **Warm-start** — the encoder is initialized from the already-trained
+  autoencoder above (only the new classification head starts random).
+
+In this dataset the two end up performing almost identically (within 0.004
+average precision of each other), so the simpler cold-start CNN is the one
+used throughout the rest of the paper and this repo.
+
+### Running the detectors yourself
+
+```bash
+# Train the autoencoder from scratch on a spectrogram .npz dataset
+PYTHONPATH=. python -m bowhead.train.train_ae --data data/spectrograms_100k_matched.npz --out-dir runs/ae_full
+
+# Train the supervised CNN — cold-start (default) ...
+PYTHONPATH=. python -m bowhead.train.train_cnn --data data/spectrograms_100k_matched.npz --tag scratch
+
+# ... or warm-started from a trained autoencoder checkpoint
+PYTHONPATH=. python -m bowhead.train.train_cnn --data data/spectrograms_100k_matched.npz \
+  --warm-start runs/ae_full/autoencoder_clean.pt --tag warmstart
+
+# Score a trained CNN checkpoint against a directory of raw .mat spectrograms
+PYTHONPATH=. python -m bowhead.eval.score_eval_dataset \
+  --eval-dir /path/to/Evaluation_200K.dir --model scratch runs/scratch/best.pt
+```
+
 ## Benchmarks
 
 All four pipelines emit a single **call-probability score** per spectrogram and
