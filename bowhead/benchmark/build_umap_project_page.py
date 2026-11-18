@@ -687,13 +687,38 @@ RENDER_JS = r"""
         var k = sl % AU.per_tile;
         return tile(Math.floor(sl / AU.per_tile)).then(function (a) { return a.subarray(k * AU.n_samples, (k + 1) * AU.n_samples); });
       }
-      // Browsers cannot play a 1 kHz buffer, so the clip is linearly interpolated to 8 kHz (same pitch and duration).
+      // Browsers cannot play a 1 kHz buffer, so the clip is interpolated to 8 kHz (same pitch and duration).  Straight-line
+      // interpolation leaves mirror images of the sound above 500 Hz (audible as a metallic buzz), so a windowed-sinc
+      // (band-limited) interpolator is used: its cut-off is the recording's own 500 Hz Nyquist limit.
+      var HW = 16, KERN = (function () {
+        var tab = [];
+        for (var j = 0; j < UP; j++) {
+          var h = new Float32Array(2 * HW);
+          for (var m = 0; m < 2 * HW; m++) {
+            var u = (m - HW + 1) - j / UP;                                   // distance from the new sample, in input samples
+            var sinc = Math.abs(u) < 1e-9 ? 1 : Math.sin(Math.PI * u) / (Math.PI * u);
+            var w = Math.abs(u) >= HW ? 0 : 0.42 + 0.5 * Math.cos(Math.PI * u / HW) + 0.08 * Math.cos(2 * Math.PI * u / HW);
+            h[m] = sinc * w;
+          }
+          tab.push(h);
+        }
+        return tab;
+      })();
       function upsample(x) {
         var n = x.length, y = new Float32Array(n * UP);
         for (var i = 0; i < n; i++) {
-          var a = x[i] / 32768, b = (i + 1 < n ? x[i + 1] : x[i]) / 32768;
-          for (var j = 0; j < UP; j++) y[i * UP + j] = a + (b - a) * j / UP;
+          for (var j = 0; j < UP; j++) {
+            var h = KERN[j], acc = 0;
+            for (var m = 0; m < 2 * HW; m++) {
+              var k = i + m - HW + 1;
+              if (k >= 0 && k < n) acc += x[k] * h[m];
+            }
+            y[i * UP + j] = acc / 32768;
+          }
         }
+        var pk = 0;                                       // smooth interpolation can overshoot between samples on sharp clips
+        for (var q = 0; q < y.length; q++) { var av = Math.abs(y[q]); if (av > pk) pk = av; }
+        if (pk > 0.95) { var sc = 0.95 / pk; for (var q2 = 0; q2 < y.length; q2++) y[q2] *= sc; }
         return y;
       }
       function stop() {
