@@ -956,7 +956,47 @@ def ensure_viewport(head: str) -> str:
     return head.replace('<meta charset="utf-8" />', f'<meta charset="utf-8" />\n  {VIEWPORT_TAG}', 1)
 
 
-def ensure_title(text: str, title: str) -> str:
+SHARE_BEGIN, SHARE_END = "<!-- SHARE-PREVIEW-BEGIN -->", "<!-- SHARE-PREVIEW-END -->"
+SHARE_DESC = ("Interactive 3-D UMAP of 300,000 bowhead whale call and transient spectrograms from Alaskan North Slope "
+              "hydrophones. Rotate each plot, click a point to see its spectrogram and hear the recording.")
+
+
+def share_preview_tags(title: str, page_url: str, image_url: str) -> str:
+    """Open Graph / Twitter-card tags: what chat apps and social sites show when the link is shared.  They must be in the
+    static HTML (link-preview crawlers do not run JavaScript) and the image must be a public absolute URL."""
+    def e(v: str) -> str:
+        return v.replace("&", "&amp;").replace('"', "&quot;")
+    alt = "Engraving of a bowhead whale"
+    return "\n".join([
+        f"  {SHARE_BEGIN}",
+        f'  <meta name="description" content="{e(SHARE_DESC)}" />',
+        '  <meta property="og:type" content="website" />',
+        f'  <meta property="og:title" content="{e(title)}" />',
+        f'  <meta property="og:description" content="{e(SHARE_DESC)}" />',
+        f'  <meta property="og:url" content="{e(page_url)}" />',
+        f'  <meta property="og:image" content="{e(image_url)}" />',
+        '  <meta property="og:image:width" content="1200" />',
+        '  <meta property="og:image:height" content="630" />',
+        f'  <meta property="og:image:alt" content="{alt}" />',
+        '  <meta name="twitter:card" content="summary_large_image" />',
+        f'  <meta name="twitter:title" content="{e(title)}" />',
+        f'  <meta name="twitter:description" content="{e(SHARE_DESC)}" />',
+        f'  <meta name="twitter:image" content="{e(image_url)}" />',
+        f"  {SHARE_END}",
+    ]) + "\n"
+
+
+def ensure_share_preview(head: str, title: str, page_url: str, image_url: str) -> str:
+    """Add the share-preview block at the end of <head>, or replace it in place if already present."""
+    block = share_preview_tags(title, page_url, image_url)
+    if SHARE_BEGIN in head:
+        a = head.rfind("\n", 0, head.index(SHARE_BEGIN)) + 1       # keep the block's own indentation
+        b = head.index(SHARE_END, a) + len(SHARE_END)
+        return head[:a] + block + head[b:].lstrip("\n")
+    return head.rstrip() + "\n" + block
+
+
+def ensure_title(text: str, title: str, share: tuple[str, str] | None = None) -> str:
     head_end = text.index("</head>")
     head = ensure_viewport(text[:head_end])
     tag = f"<title>{title}</title>"
@@ -966,11 +1006,13 @@ def ensure_title(text: str, title: str) -> str:
         head = head.replace('<meta charset="utf-8" />', f'<meta charset="utf-8" />\n  {tag}', 1)
         if tag not in head:
             raise SystemExit("Could not place <title> in <head>")
+    if share:
+        head = ensure_share_preview(head, title, share[0], share[1])
     return head + text[head_end:]
 
 
-def splice_into_page(page: Path, fragment: str, title: str) -> None:
-    text = ensure_title(page.read_text(encoding="utf-8"), title)
+def splice_into_page(page: Path, fragment: str, title: str, share: tuple[str, str] | None = None) -> None:
+    text = ensure_title(page.read_text(encoding="utf-8"), title, share)
     block = f"{BEGIN_MARK}\n{fragment}{END_MARK}\n"
     if BEGIN_MARK in text:
         start = text.index(BEGIN_MARK)
@@ -992,6 +1034,10 @@ def main() -> None:
     ap.add_argument("--page", type=Path, required=True, help="Plotly project page to update in place")
     ap.add_argument("--atlas-dir", type=Path, default=None, help=f"tile folder (default: <page dir>/{ATLAS_DIR_NAME})")
     ap.add_argument("--webp-quality", type=int, default=40)
+    ap.add_argument("--page-url", default="https://www.oceaneboulais.net/interactive_whale_calls_3d.html",
+                    help="public URL of this page (for the link-preview tags)")
+    ap.add_argument("--share-image-url", default="https://www.oceaneboulais.net/interactive_whale_calls_3d_preview.png",
+                    help="public URL of the 1200x630 image shown when the link is shared; empty to omit the preview tags")
     ap.add_argument("--audio-dir", type=Path, default=None,
                     help="folder written by build_umap_audio_tiles (reads its audio.json); enables audio playback")
     ap.add_argument("--audio-url", default="https://oceaneboulais.github.io/bowhead-umap-audio",
@@ -1014,7 +1060,8 @@ def main() -> None:
         audio = json.loads((args.audio_dir / "audio.json").read_text())
         audio["url"] = args.audio_url.rstrip("/")
         assert audio["n_slots"] == atlas["n_slots"], "audio tiles and spectrogram atlas must use the same slot numbering"
-    splice_into_page(args.page, build_fragment(pack_data(data, atlas, audio), args.test_hooks), args.title)
+    splice_into_page(args.page, build_fragment(pack_data(data, atlas, audio), args.test_hooks), args.title,
+                     (args.page_url, args.share_image_url) if args.share_image_url else None)
 
 
 if __name__ == "__main__":
