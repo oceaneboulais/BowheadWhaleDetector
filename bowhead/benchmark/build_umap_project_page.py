@@ -1,14 +1,17 @@
-"""Build the interactive UMAP project page: two tabs, one shared set of camera tools.
+"""Build the interactive UMAP project page: four tabs, one shared set of camera tools.
 
-Tab 1 "Training vs. evaluation" -- the paper's ``fig:UMAP_displays`` as an interactive 3-D plot
-(train | eval side by side, or every point in one scene).  Same inputs/conventions as
+Tabs 1-3 "Training vs. evaluation" -- the paper's ``fig:UMAP_displays`` as an interactive 3-D plot
+(the paper's 3x2 grid, train | eval side by side, or every point in one scene).  Same inputs/conventions as
 ``generate_umap_training_eval_figure.py``: coordinates of the training and evaluation files are
 standardized TOGETHER, CD = ``0 < features.type < 12`` (train) / ``iscall`` (eval), nothing subsampled.
 
-Tab 2 "Click a point -> spectrogram" -- training dataset only.  Click a point and its spectrogram
+Tab 4 "Click a point -> spectrogram" -- training dataset only.  Click a point and its spectrogram
 is shown beside the plot.  Spectrograms exist only for rows whose image is VERIFIED to be the one
 the row was built from (see ``umap_spectrogram_atlas.py``); every other point is drawn faint and
 reports "no spectrogram available".
+
+The page opens on tab 4 (``?tab=grid|side|combined`` opens one of the other tabs instead); a tab's 3-D
+scenes are only built the first time it is opened.  Every tab starts with a point size of ``POINT_SIZE``.
 
 The page's own plotly.js bundle is left untouched; the block is wrapped in BEGIN/END comment markers
 so re-running replaces it in place.  The browser draws everything from point data embedded once
@@ -44,6 +47,7 @@ ATLAS_DIR_NAME = "umap_train_spectrograms"
 PAPER_VIEWS = (20, 80, 140)
 PAPER_ELEV = 20
 CAMERA_RADIUS = 2.2
+POINT_SIZE = 1  # default marker size on every tab (each tab has a "Point size" slider)
 SPEC_SCALE = 3  # css px per spectrogram pixel on the click tab
 FNAME_RE = re.compile(r"^S(\d)(\d\d)([A-Z])(\d)T(\d{8})T(\d{6})_Type(\d+)\.mat$")
 
@@ -100,6 +104,7 @@ def pack_data(data: dict, atlas: dict, audio: dict | None = None) -> dict:
         "rangesTrain": _ranges(tr_xyz),
         "views": [{"az": az, "eye": _eye(az)} for az in PAPER_VIEWS],
         "radius": CAMERA_RADIUS,
+        "pointSize": POINT_SIZE,
         "train": {"ot": _b64_planar(tr_xyz[~tr_cd]), "cd": _b64_planar(tr_xyz[tr_cd])},
         "eval": {"ot": _b64_planar(ev_xyz[~ev_cd]), "cd": _b64_planar(ev_xyz[ev_cd])},
     }
@@ -190,6 +195,10 @@ def build_html() -> str:
   .umap-ctl input[type=range] {{ width: 110px; vertical-align: middle; }}
   .zoom-range {{ width: 220px; }}
   .umap-hint {{ font-family: sans-serif; font-size: 12px; color: #555; text-align: center; padding: 2px 8px 6px; }}
+  #umap-mode button, #umap-lost button {{ font: inherit; padding: 2px 10px; border: 1px solid #888; border-radius: 4px;
+                                         background: #f4f4f4; color: #222; cursor: pointer; margin-left: 6px; }}
+  #umap-lost {{ display: none; margin: 8px; padding: 8px 12px; background: #fff3cd; border: 1px solid #e0b84c; border-radius: 6px;
+               font-family: sans-serif; font-size: 13px; color: #533f03; text-align: center; }}
   #uclick-body {{ display: flex; flex-wrap: wrap; gap: 8px 16px; padding: 0 8px; align-items: flex-start; }}
   #uclick-plot {{ flex: 1 1 520px; min-width: 0; height: 760px; }}
   #uclick-side {{ flex: 0 0 {W + 150}px; font-family: sans-serif; font-size: 13px; color: #222; padding-top: 8px; }}
@@ -221,7 +230,7 @@ def build_html() -> str:
     .umap-ctl .grp {{ flex-wrap: wrap; justify-content: center; row-gap: 4px; }}
     .umap-ctl input[type=range] {{ width: 80px; }}
     .zoom-range {{ width: 90px; }}
-    #uclick-plot {{ flex: 1 1 100%; min-width: 0; }}
+    #uclick-plot {{ flex: 1 1 100%; min-width: 0; height: auto; }}
     /* The spectrogram's tick labels are positioned at fixed pixel offsets
        (computed from IMG_W/IMG_H), so rather than rescale that image and
        risk misaligning them, the whole side panel scrolls horizontally as
@@ -239,10 +248,12 @@ def build_html() -> str:
     <button data-layout="grid">Paper figure: 3&times;2 plots, rotate each</button>
     <button data-layout="side">Train | Eval side by side</button>
     <button data-layout="combined">All points together</button>
-    <button data-layout="click">Click a point &rarr; spectrogram</button></div>
+    <button data-layout="click" class="on">Click a point &rarr; spectrogram</button></div>
 </div>
+<div id="umap-mode" class="umap-hint" style="display:none"></div>
+<div id="umap-lost"></div>
 
-<div id="umap-panel-overview">
+<div id="umap-panel-overview" style="display:none">
   <div class="umap-ctl" id="umap-controls">
     <div class="grp"><b>View</b>
       <button data-view="0">1</button><button data-view="1">2</button><button data-view="2">3</button>
@@ -251,8 +262,8 @@ def build_html() -> str:
     <div class="grp" id="umap-linkgrp"><label><input id="umap-link" type="checkbox" checked> Link rotation</label>
       <button id="umap-evalrot" title="Turn only the evaluation panel 180 degrees">Eval &#8635; 180&deg;</button></div>
     {_zoom_group("umap")}
-    <div class="grp"><label>Point size <input id="umap-size" type="range" min="1" max="8" step="0.5" value="3">
-      <span id="umap-size-v">3</span></label></div>
+    <div class="grp"><label>Point size <input id="umap-size" type="range" min="1" max="8" step="0.5" value="{POINT_SIZE}">
+      <span id="umap-size-v">{POINT_SIZE}</span></label></div>
     <div class="grp"><label>Opacity <input id="umap-opacity" type="range" min="0.1" max="1" step="0.05" value="0.5">
       <span id="umap-opacity-v">0.5</span></label></div>
   </div>
@@ -260,10 +271,12 @@ def build_html() -> str:
   <div id="umap-train-eval" class="plotly-graph-div" style="width:100%;"></div>
 </div>
 
-<div id="umap-panel-click" style="display:none">
+<div id="umap-panel-click">
   <div class="umap-ctl">
     <div class="grp"><b>View</b><button id="uclick-spin">&#9654; Spin</button></div>
     {_zoom_group("uclick")}
+    <div class="grp"><label>Point size <input id="uclick-size" type="range" min="1" max="8" step="0.5" value="{POINT_SIZE}">
+      <span id="uclick-size-v">{POINT_SIZE}</span></label></div>
   </div>
   <div id="uclick-hint" class="umap-hint"></div>
   <div id="uclick-body">
@@ -328,12 +341,87 @@ RENDER_JS = r"""
   function fmt(n) { return n.toLocaleString("en-US"); }
   function pad(n, w) { var s = String(n); while (s.length < w) s = "0" + s; return s; }
   var G = {tOT: planar(D.train.ot), tCD: planar(D.train.cd), eOT: planar(D.eval.ot), eCD: planar(D.eval.cd)};
-  var current = "overview", A = null, B = null;
+  var PT = D.pointSize;               // default point size, the same on every tab
+  var current = "", A = null, B = null;   // A = overview layouts, B = click tab; each is built the first time it is shown
 
-  /* ---- camera tools shared by both tabs: zoom (slider, buttons, wheel), spin, current eye ---- */
+  /* ---- phone mode ----
+     Drawing every point (about 900k across the six plots of the paper-figure layout) takes a laptop only a few seconds but
+     needs about 3.5 GB of renderer + GPU memory, which gets a phone browser's tab killed.  On phones each figure therefore
+     draws a random subset: a fixed point budget shared by the plots on screen (about 0.5 GB in all).  ?full=1 forces every
+     point, ?lite=1 forces the subset, and ?pts=N sets the budget. */
+  var QS = new URLSearchParams(location.search);
+  var LITE = QS.get("full") === "1" ? false
+    : (QS.get("lite") === "1" || !!(window.matchMedia && matchMedia("(pointer: coarse)").matches) ||
+       Math.min(screen.width, screen.height) < 700 || (navigator.deviceMemory > 0 && navigator.deviceMemory <= 4));
+  var budget = Math.max(1000, +QS.get("pts") || 24000);
+  document.documentElement.setAttribute("data-umap-lite", LITE ? "1" : "0");
+  // Seeded shuffles keep the subsets identical on every visit and nested (a smaller subset is a prefix of a larger one).
+  var ORDERS = {};
+  function order(key, n) {
+    var o = ORDERS[key];
+    if (o && o.length === n) return o;
+    var a = 0;
+    for (var c = 0; c < key.length; c++) a = (a * 31 + key.charCodeAt(c)) | 0;
+    function rnd() {   // mulberry32
+      a = (a + 0x6D2B79F5) | 0;
+      var t = Math.imul(a ^ (a >>> 15), 1 | a);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    }
+    o = new Uint32Array(n);
+    for (var i = 0; i < n; i++) o[i] = i;
+    for (var j = n - 1; j > 0; j--) { var k = Math.floor(rnd() * (j + 1)), s = o[j]; o[j] = o[k]; o[k] = s; }
+    return ORDERS[key] = o;
+  }
+  function thin(g, f, key) {   // random fraction f of a planar group
+    var k = Math.max(1, Math.round(g.n * f));
+    if (f >= 1 || k >= g.n) return g;
+    var o = order(key, g.n), r = {n: k, x: new Float32Array(k), y: new Float32Array(k), z: new Float32Array(k)};
+    for (var i = 0; i < k; i++) { var j = o[i]; r.x[i] = g.x[j]; r.y[i] = g.y[j]; r.z[i] = g.z[j]; }
+    return r;
+  }
+  function reload(params) {   // reload this page with some query parameters changed (null removes one), staying on the same tab
+    var q = new URLSearchParams(location.search), tab = current === "overview" && A ? A.mode() : "click";
+    Object.keys(params).forEach(function (k) { if (params[k] === null) q.delete(k); else q.set(k, params[k]); });
+    if (tab === "click") q.delete("tab"); else q.set("tab", tab);
+    var s = q.toString();
+    location.href = location.pathname + (s ? "?" + s : "") + location.hash;
+  }
+  var NOTE = {overview: "", click: ""};
+  function renderNote() {
+    var el = document.getElementById("umap-mode");
+    if (LITE) {
+      if (!NOTE[current]) { el.style.display = "none"; return; }   // that tab is still being drawn
+      el.innerHTML = "<b>Phone mode:</b> " + NOTE[current] + ' <button data-act="all">Show all points</button>';
+    } else if (QS.get("full") === "1") {
+      el.innerHTML = 'Showing every point. <button data-act="lite">Switch to phone mode</button>';
+    } else { el.style.display = "none"; return; }
+    el.style.display = "";
+  }
+  document.getElementById("umap-mode").addEventListener("click", function (ev) {
+    var act = ev.target && ev.target.getAttribute && ev.target.getAttribute("data-act");
+    if (act === "all") {
+      if (confirm("Drawing all " + fmt(G.tOT.n + G.tCD.n + G.eOT.n + G.eCD.n) + " points needs several GB of memory and can crash a phone's browser. Show them anyway?"))
+        reload({full: "1", lite: null, pts: null});
+    } else if (act === "lite") reload({full: null, lite: "1"});
+  });
+  // The browser drops a WebGL context when it runs out of graphics memory; offer a lighter page rather than a blank plot.
+  document.addEventListener("webglcontextlost", function (ev) {
+    if (!ev.target || !ev.target.isConnected) return;   // Plotly itself releases the contexts of plots it replaces
+    var el = document.getElementById("umap-lost"), cur = LITE ? budget : 24000;
+    el.innerHTML = "The browser ran out of graphics memory and dropped a 3-D view. " +
+      (cur > 1000 ? '<button data-act="fewer">Reload with fewer points</button>' : "Close other tabs and reload the page.");
+    el.style.display = "block";
+  }, true);
+  document.getElementById("umap-lost").addEventListener("click", function (ev) {
+    if (ev.target && ev.target.getAttribute && ev.target.getAttribute("data-act") === "fewer")
+      reload({full: null, lite: "1", pts: Math.max(1000, Math.floor((LITE ? budget : 24000) / 2))});
+  });
+
+  /* ---- camera tools shared by all tabs: zoom (slider, buttons, wheel), spin, current eye ---- */
   function CameraTools(o) {
-    var gd = o.gd, P = o.prefix, R0 = D.radius, ZMIN = 0.4, ZMAX = 10, SPIN_DEG_PER_S = 15;
-    var zoomBusy = false, pendingZ = null, lastReqZ = 1, sliderDown = false;
+    var gd = o.gd, P = o.prefix, R0 = D.radius, HOME = o.homeZoom || 1, ZMIN = 0.4, ZMAX = 10, SPIN_DEG_PER_S = 15;
+    var zoomBusy = false, pendingZ = null, lastReqZ = HOME, sliderDown = false;
     var spinning = false, inFlight = false, lastT = 0;
     function el(s) { return document.getElementById(P + "-" + s); }
     function eyeOf(s) {
@@ -355,6 +443,7 @@ RENDER_JS = r"""
     function setEye(e) { return setEyes(function () { return e; }); }
     function zoomOf(e) { return R0 / Math.hypot(e.x, e.y, e.z); }
     function showZoom(z) {
+      z = Math.round(z * 1e4) / 1e4;                                   // 0.7499999 must read as 0.75, not x0.7
       if (!sliderDown) el("zoom").value = Math.log2(z);
       el("zoom-v").innerHTML = "&times;" + (z >= 10 ? z.toFixed(0) : z.toFixed(1));
     }
@@ -413,7 +502,7 @@ RENDER_JS = r"""
 
     el("zin").addEventListener("click", function () { zoomBy(1.25); });
     el("zout").addEventListener("click", function () { zoomBy(1 / 1.25); });
-    el("zreset").addEventListener("click", function () { requestZoom(1); });
+    el("zreset").addEventListener("click", function () { requestZoom(HOME); });
     el("zoom").addEventListener("input", function (ev) { requestZoom(Math.pow(2, +ev.target.value)); });
     el("zoom").addEventListener("pointerdown", function () { sliderDown = true; });
     window.addEventListener("pointerup", function () { sliderDown = false; });
@@ -425,14 +514,17 @@ RENDER_JS = r"""
     }, {capture: true, passive: false});
 
     return {currentEye: currentEye, eyeOf: eyeOf, setEye: setEye, refresh: refresh, onRelayout: onRelayout, stopSpin: stopSpin,
-            zoomBy: zoomBy, requestZoom: requestZoom, setBusy: function (b) { inFlight = b; }};
+            zoomBy: zoomBy, requestZoom: requestZoom, resetZoom: function () { requestZoom(HOME); },
+            setBusy: function (b) { inFlight = b; }};
   }
 
-  /* ---- tab 1: training vs. evaluation ---- */
-  function initOverview() {
+  /* ---- tabs 1-3: training vs. evaluation ---- */
+  function initOverview(startMode) {
     var gd = document.getElementById("umap-train-eval");
-    var mode = "grid", drawing = false, merged = null, size = 2, opacity = 0.3, touched = false, linked = true;
-    var DEFAULTS = {side: {size: 3, opacity: 0.5}, combined: {size: 2, opacity: 0.25}, grid: {size: 2, opacity: 0.3}};  // 300k points are denser
+    var mode = "grid", drawing = false, merged = null, size = PT, opacity = 0.3, touched = false, linked = true, shownTxt = "";
+    var DEFAULTS = LITE
+      ? {side: {opacity: 0.6}, combined: {opacity: 0.5}, grid: {opacity: 0.6}}   // far fewer points are drawn
+      : {side: {opacity: 0.5}, combined: {opacity: 0.25}, grid: {opacity: 0.3}};  // 300k points are denser
     // Paper-figure grid: 3 rows (azimuths 20/80/140) x 2 columns (training | evaluation); every plot is its own scene.
     var GRID_SCENES = ["scene", "scene2", "scene3", "scene4", "scene5", "scene6"];
     var tools = CameraTools({gd: gd, prefix: "umap", scenes: function () {
@@ -443,13 +535,32 @@ RENDER_JS = r"""
       return isEval ? {x: -e.x, y: -e.y, z: e.z} : {x: e.x, y: e.y, z: e.z};
     }
 
+    var NT = G.tOT.n + G.tCD.n, NE = G.eOT.n + G.eCD.n;
+    function plotsIn(m) { return m === "grid" ? 6 : (m === "side" ? 2 : 1); }
+    // Phone mode: the budget is shared by the plots on screen, and every class keeps its share of its dataset.
+    function subsets(m) {
+      var per = Math.floor(budget / plotsIn(m)), s = {};
+      if (m === "combined") {
+        var fc = LITE ? Math.min(1, per / (NT + NE)) : 1;
+        s.ot = concat(thin(G.tOT, fc, "tOT"), thin(G.eOT, fc, "eOT"));
+        s.cd = concat(thin(G.tCD, fc, "tCD"), thin(G.eCD, fc, "eCD"));
+        return s;
+      }
+      var ft = LITE ? Math.min(1, per / NT) : 1, fe = LITE ? Math.min(1, per / NE) : 1;
+      s.tOT = thin(G.tOT, ft, "tOT"); s.tCD = thin(G.tCD, ft, "tCD");
+      s.eOT = thin(G.eOT, fe, "eOT"); s.eCD = thin(G.eCD, fe, "eCD");
+      return s;
+    }
     function getMerged() {
+      if (LITE) return subsets("combined");
       if (!merged) merged = {ot: concat(G.tOT, G.eOT), cd: concat(G.tCD, G.eCD)};
       return merged;
     }
     function trace(g, color, name, scene, showLegend) {
+      var marker = {size: size, color: color, opacity: opacity};
+      if (LITE) marker.symbol = "square";   // far fewer vertices per point than the default circle glyph (about a quarter less memory)
       return {type: "scatter3d", mode: "markers", x: g.x, y: g.y, z: g.z, name: name, scene: scene,
-              showlegend: showLegend, hoverinfo: "skip", marker: {size: size, color: color, opacity: opacity}};
+              showlegend: showLegend, hoverinfo: "skip", marker: marker};
     }
     function sceneDef(x0, x1, eye, y0, y1, boxScale) {
       function ax(i, t) { return {title: {text: t}, range: D.ranges[i], dtick: 1}; }
@@ -469,39 +580,49 @@ RENDER_JS = r"""
       return {text: text, xref: "paper", yref: "paper", x: x, y: y, xanchor: "center", yanchor: "bottom",
               showarrow: false, font: {size: fontSize}};
     }
-    function counts(ot, cd) { return fmt(ot.n + cd.n) + " (" + fmt(cd.n) + " CD, " + fmt(ot.n) + " OT)"; }
+    // Dataset sizes always report the full dataset; phone mode adds how many of its points are drawn.
+    function shownOf(drawn, total) { return LITE && drawn < total ? " \u00b7 " + fmt(drawn) + " shown" : ""; }
+    function counts(ot, cd, drawn) {
+      return fmt(ot.n + cd.n) + " (" + fmt(cd.n) + " CD, " + fmt(ot.n) + " OT)" + shownOf(drawn, ot.n + cd.n);
+    }
     function build(eye) {
       var layout, data;
       var narrow = (gd.clientWidth || gd.getBoundingClientRect().width || 900) < NARROW_PX;
       var titleSize = narrow ? 13 : 18, annSize = narrow ? 11 : 13;
+      var S = mode === "combined" ? null : subsets(mode), nTs = 0, nEs = 0;
+      if (S) { nTs = S.tOT.n + S.tCD.n; nEs = S.eOT.n + S.eCD.n; }
       if (mode === "grid") {
         data = []; layout = {annotations: [
-          ann("<b>Training dataset</b><br>n = " + fmt(G.tOT.n + G.tCD.n), 0.25, 1.0, annSize),
-          ann("<b>Evaluation dataset</b><br>n = " + fmt(G.eOT.n + G.eCD.n), 0.75, 1.0, annSize)]};
+          ann("<b>Training dataset</b><br>n = " + fmt(NT) + shownOf(nTs, NT), 0.25, 1.0, annSize),
+          ann("<b>Evaluation dataset</b><br>n = " + fmt(NE) + shownOf(nEs, NE), 0.75, 1.0, annSize)]};
         for (var r = 0; r < 3; r++) {
           for (var c = 0; c < 2; c++) {
             var sn = GRID_SCENES[r * 2 + c], isEval = c === 1, first = (r === 0 && c === 0);
-            var ot = isEval ? G.eOT : G.tOT, cd = isEval ? G.eCD : G.tCD;
+            var ot = isEval ? S.eOT : S.tOT, cd = isEval ? S.eCD : S.tCD;
             var tOT = trace(ot, OT_C, "Other transient (OT)", sn, first), tCD = trace(cd, CD_C, "Call detection (CD)", sn, first);
             tOT.legendgroup = "OT"; tCD.legendgroup = "CD";   // one legend click hides/shows a class in all six plots
             data.push(tOT, tCD);   // calls drawn last so the (far fewer) call detections stay visible over the transients
             layout[sn] = sceneDef(c * 0.5, (c + 1) * 0.5, paperEye(r, isEval), 1 - (r + 1) / 3 + 0.005, 1 - r / 3 - 0.005, 0.8);
           }
         }
+        shownTxt = fmt(nTs) + " of the " + fmt(NT) + " training points and " + fmt(nEs) + " of the " + fmt(NE) + " evaluation points in each plot";
       } else if (mode === "side") {
-        data = [trace(G.tOT, OT_C, "Other transient (OT)", "scene", true), trace(G.tCD, CD_C, "Call detection (CD)", "scene", true),
-                trace(G.eOT, OT_C, "Other transient (OT)", "scene2", false), trace(G.eCD, CD_C, "Call detection (CD)", "scene2", false)];
+        data = [trace(S.tOT, OT_C, "Other transient (OT)", "scene", true), trace(S.tCD, CD_C, "Call detection (CD)", "scene", true),
+                trace(S.eOT, OT_C, "Other transient (OT)", "scene2", false), trace(S.eCD, CD_C, "Call detection (CD)", "scene2", false)];
         layout = {scene: sceneDef(0, 0.5, eye), scene2: sceneDef(0.5, 1, eye),
                   annotations: narrow
-                    ? [ann("<b>Training dataset</b><br>n = " + counts(G.tOT, G.tCD), 0.5, 1.38, annSize),
-                       ann("<b>Evaluation dataset</b><br>n = " + counts(G.eOT, G.eCD), 0.5, 1.0, annSize)]
-                    : [ann("<b>Training dataset</b><br>n = " + counts(G.tOT, G.tCD), 0.25, 1.0, annSize),
-                       ann("<b>Evaluation dataset</b><br>n = " + counts(G.eOT, G.eCD), 0.75, 1.0, annSize)]};
+                    ? [ann("<b>Training dataset</b><br>n = " + counts(G.tOT, G.tCD, nTs), 0.5, 1.38, annSize),
+                       ann("<b>Evaluation dataset</b><br>n = " + counts(G.eOT, G.eCD, nEs), 0.5, 1.0, annSize)]
+                    : [ann("<b>Training dataset</b><br>n = " + counts(G.tOT, G.tCD, nTs), 0.25, 1.0, annSize),
+                       ann("<b>Evaluation dataset</b><br>n = " + counts(G.eOT, G.eCD, nEs), 0.75, 1.0, annSize)]};
+        shownTxt = fmt(nTs) + " of the " + fmt(NT) + " training points and " + fmt(nEs) + " of the " + fmt(NE) + " evaluation points";
       } else {
-        var m = getMerged();
+        var m = getMerged(), nm = m.ot.n + m.cd.n;
         data = [trace(m.ot, OT_C, "Other transient (OT)", "scene", true), trace(m.cd, CD_C, "Call detection (CD)", "scene", true)];
         layout = {scene: sceneDef(0, 1, eye),
-                  annotations: [ann("<b>All data points: training + evaluation</b><br>n = " + counts(m.ot, m.cd), 0.5, 1.0, annSize)]};
+                  annotations: [ann("<b>All data points: training + evaluation</b><br>n = " +
+                    counts({n: G.tOT.n + G.eOT.n}, {n: G.tCD.n + G.eCD.n}, nm), 0.5, 1.0, annSize)]};
+        shownTxt = fmt(nm) + " of the " + fmt(NT + NE) + " points";
       }
       layout.title = {text: "<b>UMAP of the autoencoder latent space</b>", x: 0.5, xanchor: "center", y: 0.97, yanchor: "top", font: {size: titleSize}};
       layout.legend = {itemsizing: "constant", orientation: "h", x: 0.5, xanchor: "center", y: -0.02, yanchor: "top"};
@@ -537,13 +658,16 @@ RENDER_JS = r"""
       document.querySelectorAll("#umap-modes [data-layout]").forEach(function (b) {
         b.classList.toggle("on", current === "overview" && b.getAttribute("data-layout") === mode);
       });
-      var total = G.tOT.n + G.tCD.n + G.eOT.n + G.eCD.n;
+      var total = NT + NE;
       document.getElementById("umap-hint").textContent =
         (mode === "grid" ? "Drag inside any one of the six plots to rotate just that plot \u00b7 " : "Drag to rotate \u00b7 ") +
-        "zoom with the slider, \u2212/+ buttons, scroll wheel or the +/\u2212 keys \u00b7 " +
-        "click a legend entry to hide/show CD or OT \u00b7 all " + fmt(total) + " points are drawn (none subsampled)" +
+        (LITE ? "zoom with the slider or \u2212/+ buttons \u00b7 tap a legend entry to hide/show CD or OT"
+              : "zoom with the slider, \u2212/+ buttons, scroll wheel or the +/\u2212 keys \u00b7 " +
+                "click a legend entry to hide/show CD or OT \u00b7 all " + fmt(total) + " points are drawn (none subsampled)") +
         (mode === "side" ? (linked ? " \u00b7 the two panels rotate together (untick \u201cLink rotation\u201d to turn them independently)"
                                    : " \u00b7 each panel now rotates independently") : "");
+      NOTE.overview = "to keep this page fast, it draws a random subset: " + shownTxt + ". The counts in the labels are for the full datasets.";
+      renderNote();
       document.getElementById("umap-linkgrp").style.display = mode === "side" ? "" : "none";
       document.getElementById("umap-gridgrp").style.display = mode === "grid" ? "" : "none";
       document.querySelectorAll("#umap-controls [data-view]").forEach(function (b) {
@@ -553,20 +677,12 @@ RENDER_JS = r"""
     function draw(newMode) {
       var eye = (gd._fullLayout && gd._fullLayout.scene) ? tools.currentEye() : D.views[0].eye;
       mode = newMode; drawing = true; tools.setBusy(true);
-      if (!touched) { size = DEFAULTS[mode].size; opacity = DEFAULTS[mode].opacity; showSliders(); }
+      if (!touched) { size = PT; opacity = DEFAULTS[mode].opacity; showSliders(); }
       var b = build(eye);
       return Plotly.newPlot(gd, b.data, b.layout, CONFIG).then(function () {
         attachSync(); markButtons(); tools.refresh(); drawing = false; tools.setBusy(false);
       });
     }
-    document.querySelectorAll("#umap-modes [data-layout]").forEach(function (b) {
-      b.addEventListener("click", function () {
-        var m = b.getAttribute("data-layout");
-        if (m === "click") { showTab("click"); return; }
-        showTab("overview");
-        if (m !== mode && !drawing) draw(m);
-      });
-    });
     document.querySelectorAll("#umap-controls [data-view]").forEach(function (b) {
       b.addEventListener("click", function () { tools.setEye(D.views[+b.getAttribute("data-view")].eye); });
     });
@@ -597,11 +713,12 @@ RENDER_JS = r"""
     }
     slider("umap-size", function (v) { size = v; Plotly.restyle(gd, {"marker.size": v}); });
     slider("umap-opacity", function (v) { opacity = v; Plotly.restyle(gd, {"marker.opacity": v}); });
-    draw("grid");
-    return {gd: gd, tools: tools, mode: function () { return mode; }};
+    draw(startMode || "grid");
+    return {gd: gd, tools: tools, mode: function () { return mode; },
+            show: function (m) { if (m !== mode && !drawing) draw(m); }};
   }
 
-  /* ---- tab 2: click a point -> spectrogram (training dataset only) ---- */
+  /* ---- tab 4: click a point -> spectrogram (training dataset only) ---- */
   function initClick() {
     var gd = document.getElementById("uclick-plot"), C = D.click, S = C.scale;
     var slot = new Int32Array(decode(C.slot)), site = new Uint8Array(decode(C.site)), dasar = new Uint8Array(decode(C.dasar));
@@ -617,6 +734,23 @@ RENDER_JS = r"""
       nVerified += has;
       lists[has * 2 + (p >= NOT ? 1 : 0)].push(p);
     }
+    // Phone mode keeps every point that has a spectrogram and draws only a random subset of the faint ones (those without).
+    var nFaint = lists[0].length + lists[1].length, nFaintDrawn = nFaint;
+    if (LITE) {
+      var want = Math.max(2000, budget - nVerified);
+      if (want < nFaint) {
+        var faint = lists[0].concat(lists[1]), ord = order("faint", faint.length), keep = new Uint8Array(N);
+        for (var q = 0; q < want; q++) keep[faint[ord[q]]] = 1;
+        lists[0] = lists[0].filter(function (p) { return keep[p]; });
+        lists[1] = lists[1].filter(function (p) { return keep[p]; });
+        nFaintDrawn = want;
+      }
+    }
+    var DRAWN = Int32Array.from(lists[0].concat(lists[1], lists[2], lists[3])), ND = DRAWN.length;   // the points picking may return
+    NOTE.click = nFaintDrawn < nFaint
+      ? "to keep this page fast, it draws all " + fmt(nVerified) + " points that have a spectrogram plus a random " + fmt(nFaintDrawn) +
+        " of the " + fmt(nFaint) + " that do not."
+      : "all points are drawn.";
     // On a narrow screen the legend's longest entries ("Call detection (CD),
     // spectrogram available (9,323)") don't fit even stacked one per line, so
     // use a shorter label there instead.
@@ -625,22 +759,26 @@ RENDER_JS = r"""
       var pos = Int32Array.from(l), n = pos.length, x = new Float32Array(n), y = new Float32Array(n), z = new Float32Array(n);
       for (var i = 0; i < n; i++) { x[i] = P.x[pos[i]]; y[i] = P.y[pos[i]]; z[i] = P.z[pos[i]]; }
       var cd = gi % 2, has = gi >> 1;
+      var marker = {size: PT, color: cd ? CD_C : OT_C, opacity: has ? 0.75 : (LITE ? 0.25 : 0.12)};
+      if (LITE) marker.symbol = "square";
       var name = clickNarrowLegend
         ? (cd ? "CD" : "OT") + (has ? ", has spectrogram" : ", no spectrogram") + " (" + fmt(n) + ")"
         : (cd ? "Call detection (CD)" : "Other transient (OT)") + (has ? ", spectrogram available" : ", no spectrogram") + " (" + fmt(n) + ")";
       return {pos: pos, trace: {
         type: "scatter3d", mode: "markers", x: x, y: y, z: z, hoverinfo: "none", showlegend: true,
-        name: name,
-        marker: {size: has ? 4 : 2, color: cd ? CD_C : OT_C, opacity: has ? 0.75 : 0.12}}};
+        name: name, marker: marker}};
     });
     var selected = {type: "scatter3d", mode: "markers", x: [], y: [], z: [], hoverinfo: "skip", showlegend: false, name: "selected",
                     marker: {size: 9, color: "#111", symbol: "diamond", line: {color: "#fff", width: 2}}};
     var R = D.rangesTrain;
     function ax(i, t) { return {title: {text: t}, range: R[i], dtick: 1}; }
     var clickNarrow = clickNarrowLegend;
+    // The axis titles and tick labels are drawn inside the canvas, so on a narrow screen the default view is
+    // zoomed out a little (x0.75) to keep them from being cut off at its edges.  Reset returns to this view.
+    var homeZoom = clickNarrow ? 0.75 : 1, e0 = D.views[0].eye;
     var layout = {
       scene: {xaxis: ax(0, "UMAP 1"), yaxis: ax(1, "UMAP 2"), zaxis: ax(2, "UMAP 3"), aspectmode: "cube",
-              camera: {eye: D.views[0].eye, center: {x: 0, y: 0, z: 0}, up: {x: 0, y: 0, z: 1}}},
+              camera: {eye: {x: e0.x / homeZoom, y: e0.y / homeZoom, z: e0.z / homeZoom}, center: {x: 0, y: 0, z: 0}, up: {x: 0, y: 0, z: 1}}},
       // Horizontal legends don't wrap, so this tab's four fairly long entries
       // (e.g. "Call detection (CD), spectrogram available (9,323)") clip off
       // the edge on a narrow screen; stack them vertically there and let each
@@ -650,8 +788,8 @@ RENDER_JS = r"""
         ? {itemsizing: "constant", orientation: "v", font: {size: 11}, entrywidth: 1, entrywidthmode: "fraction",
            x: 0.5, xanchor: "center", y: -0.03, yanchor: "top"}
         : {itemsizing: "constant", orientation: "h", x: 0.5, xanchor: "center", y: -0.02, yanchor: "top"},
-      margin: {l: 0, r: 0, t: 10, b: clickNarrow ? 230 : 110}, height: clickNarrow ? 440 : 760};
-    var tools = CameraTools({gd: gd, prefix: "uclick", scenes: function () { return ["scene"]; }});
+      margin: {l: 0, r: 0, t: 10, b: clickNarrow ? 120 : 110}, height: clickNarrow ? 560 : 760};
+    var tools = CameraTools({gd: gd, prefix: "uclick", scenes: function () { return ["scene"]; }, homeZoom: homeZoom});
 
     var specEl = document.getElementById("uclick-spec"), emptyEl = document.getElementById("uclick-empty");
     var tbody = document.querySelector("#uclick-info tbody");
@@ -811,8 +949,9 @@ RENDER_JS = r"""
     }
 
     document.getElementById("uclick-hint").textContent =
-      "Click any point to show its spectrogram \u00b7 bright points have a verified spectrogram (" + fmt(nVerified) + " of " + fmt(N) +
-      "), faint points do not \u00b7 drag to rotate \u00b7 zoom with the slider, \u2212/+ buttons, scroll wheel or the +/\u2212 keys";
+      (LITE ? "Tap" : "Click") + " any point to show its spectrogram \u00b7 bright points have a verified spectrogram (" + fmt(nVerified) + " of " + fmt(N) +
+      "), faint points do not \u00b7 drag to rotate \u00b7 " +
+      (LITE ? "zoom with the slider or \u2212/+ buttons" : "zoom with the slider, \u2212/+ buttons, scroll wheel or the +/\u2212 keys");
     Plotly.newPlot(gd, groups.map(function (g) { return g.trace; }).concat([selected]), layout, CONFIG).then(function () {
       // Plotly's gl3d "plotly_click" proved unreliable (a bare 3-D scatter fired 1 click in 12) and its hover
       // pick only hits when the cursor is within a few px of a point (18% of grid positions over the cloud,
@@ -843,13 +982,14 @@ RENDER_JS = r"""
       function canvasRect() {
         var c = gd.querySelector("canvas"); return (c || gd).getBoundingClientRect();
       }
-      function projectAll() {                              // every point, once per camera change (a few ms for 100k)
+      function projectAll() {                              // every drawn point, once per camera change (a few ms for 100k)
         var m = mat(), r = canvasRect();
         var key = m.v.join(",") + "|" + m.p.join(",") + "|" + m.m.join(",") + "|" + r.width + "x" + r.height;
         if (key === cacheKey) return r;
         cache = cache || new Float32Array(N * 3);
         wMin = 1e9; wMax = -1e9;
-        for (var p = 0; p < N; p++) {
+        for (var di = 0; di < ND; di++) {
+          var p = DRAWN[di];
           var q = project(m, P.x[p], P.y[p], P.z[p]);
           cache[p * 3] = q.x * r.width; cache[p * 3 + 1] = q.y * r.height; cache[p * 3 + 2] = q.w;
           if (q.w > 0) { if (q.w < wMin) wMin = q.w; if (q.w > wMax) wMax = q.w; }
@@ -861,7 +1001,8 @@ RENDER_JS = r"""
       // among dots at almost the same spot the one nearer the camera wins (it is the one drawn on top).
       function nearest(clientX, clientY) {
         var r = projectAll(), mx = clientX - r.left, my = clientY - r.top, best = null, bestS = 1e9, span = (wMax - wMin) || 1;
-        for (var i = 0; i < N; i++) {
+        for (var di = 0; di < ND; di++) {
+          var i = DRAWN[di];
           var w = cache[i * 3 + 2]; if (w <= 0) continue;                      // behind the camera
           var dx = cache[i * 3] - mx; if (dx > PICK_PX + 6 || dx < -PICK_PX - 6) continue;
           var dy = cache[i * 3 + 1] - my; if (dy > PICK_PX + 6 || dy < -PICK_PX - 6) continue;
@@ -898,35 +1039,54 @@ RENDER_JS = r"""
       }, true);
       gd.on("plotly_relayout", tools.onRelayout);
       gd.on("plotly_relayouting", tools.onRelayout);
+      var sizeEl = document.getElementById("uclick-size"), sizeLab = document.getElementById("uclick-size-v");
+      sizeEl.value = PT; sizeLab.textContent = PT;     // a browser may restore an old slider position on reload
+      sizeEl.addEventListener("input", function () { sizeLab.textContent = sizeEl.value; });
+      sizeEl.addEventListener("change", function () { Plotly.restyle(gd, {"marker.size": +sizeEl.value}, [0, 1, 2, 3]); });
       tools.refresh();
     });
     return {gd: gd, tools: tools, select: select, stemOf: stemOf, audio: audio};
   }
 
   /* ---- tabs and keyboard ---- */
-  function showTab(name) {
+  // Each tab's 3-D scenes are built the first time it is shown, so opening the page on the click tab never draws the
+  // six-plot overview (by far the heaviest view) unless it is asked for.  `layout` is the overview layout to open first.
+  function showTab(name, layout) {
     if (name === current) return;
     [A, B].forEach(function (v) { if (v) { v.tools.stopSpin(); if (v.audio) v.audio.stop(); } });
     current = name;
+    document.getElementById("umap-panel-overview").style.display = name === "overview" ? "" : "none";
+    document.getElementById("umap-panel-click").style.display = name === "click" ? "" : "none";
+    if (name === "overview" && !A) A = initOverview(layout);
+    else if (name === "click" && !B) { B = initClick(); /*@test*/ window.__umapClick = B; /*@/test*/ }
+    else Plotly.Plots.resize((name === "click" ? B : A).gd);
     document.querySelectorAll("#umap-modes [data-layout]").forEach(function (b) {
       var l = b.getAttribute("data-layout");
       b.classList.toggle("on", name === "click" ? l === "click" : l === A.mode());
     });
-    document.getElementById("umap-panel-overview").style.display = name === "overview" ? "" : "none";
-    document.getElementById("umap-panel-click").style.display = name === "click" ? "" : "none";
-    if (name === "click" && !B) { B = initClick(); /*@test*/ window.__umapClick = B; /*@/test*/ }
-    else Plotly.Plots.resize((name === "click" ? B : A).gd);
+    renderNote();
   }
+  document.querySelectorAll("#umap-modes [data-layout]").forEach(function (b) {
+    b.addEventListener("click", function () {
+      var m = b.getAttribute("data-layout");
+      if (m === "click") { showTab("click"); return; }
+      showTab("overview", m);
+      A.show(m);   // does nothing when the overview was just created in this layout
+    });
+  });
   document.addEventListener("keydown", function (ev) {
     var t = ev.target, v = current === "click" ? B : A;
     if (!v || ev.ctrlKey || ev.metaKey || ev.altKey) return;
     if (t && (t.tagName === "TEXTAREA" || (t.tagName === "INPUT" && t.type !== "range"))) return;
     if (ev.key === "+" || ev.key === "=") { v.tools.zoomBy(1.25); ev.preventDefault(); }
     else if (ev.key === "-" || ev.key === "_") { v.tools.zoomBy(1 / 1.25); ev.preventDefault(); }
-    else if (ev.key === "0") { v.tools.requestZoom(1); ev.preventDefault(); }
+    else if (ev.key === "0") { v.tools.resetZoom(); ev.preventDefault(); }
   });
 
-  A = initOverview();
+  // The page opens on the click tab; ?tab=grid|side|combined opens one of the overview layouts instead.
+  var START = QS.get("tab");
+  if (START === "grid" || START === "side" || START === "combined") showTab("overview", START);
+  else showTab("click");
 })();
 """
 
